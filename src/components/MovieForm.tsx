@@ -13,22 +13,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { GENRES } from "@/lib/genres";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { Movie } from "@/components/MovieCard";
 
 interface Props {
   defaultStatus: "watched" | "watchlist";
+  movie?: Movie | null;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export function MovieForm({ defaultStatus, onSaved, onCancel }: Props) {
-  const [title, setTitle] = useState("");
-  const [genre, setGenre] = useState<string>("");
-  const [score, setScore] = useState("");
-  const [max, setMax] = useState("10");
-  const [notes, setNotes] = useState("");
+export function MovieForm({ defaultStatus, movie, onSaved, onCancel }: Props) {
+  const editing = !!movie;
+  const [title, setTitle] = useState(movie?.title ?? "");
+  const [genre, setGenre] = useState<string>(movie?.genre ?? "");
+  const [status, setStatus] = useState<"watched" | "watchlist">(
+    movie?.status ?? defaultStatus,
+  );
+  const [score, setScore] = useState(movie?.rating_score?.toString() ?? "");
+  const [max, setMax] = useState(movie?.rating_max?.toString() ?? "10");
+  const [notes, setNotes] = useState(movie?.notes ?? "");
   const [saving, setSaving] = useState(false);
 
-  const isWatched = defaultStatus === "watched";
+  const isWatched = status === "watched";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,18 +46,26 @@ export function MovieForm({ defaultStatus, onSaved, onCancel }: Props) {
     const payload = {
       title: title.trim(),
       genre,
-      status: defaultStatus,
+      status,
       notes: notes.trim() || null,
       rating_score: isWatched && score ? Number(score) : null,
       rating_max: isWatched && score ? Number(max) || 10 : null,
     };
-    const { error } = await supabase.from("movies").insert(payload);
+    const { error } = editing
+      ? await supabase.from("movies").update(payload).eq("id", movie!.id)
+      : await supabase.from("movies").insert(payload);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success(isWatched ? "Added to your journal." : "Added to your watchlist.");
+    toast.success(
+      editing
+        ? "Movie updated."
+        : isWatched
+          ? "Added to your journal."
+          : "Added to your watchlist.",
+    );
     onSaved();
   }
 
@@ -68,16 +82,28 @@ export function MovieForm({ defaultStatus, onSaved, onCancel }: Props) {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Genre</Label>
-        <Select value={genre} onValueChange={setGenre}>
-          <SelectTrigger><SelectValue placeholder="Pick a genre" /></SelectTrigger>
-          <SelectContent>
-            {GENRES.map((g) => (
-              <SelectItem key={g} value={g}>{g}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Genre</Label>
+          <Select value={genre} onValueChange={setGenre}>
+            <SelectTrigger><SelectValue placeholder="Pick a genre" /></SelectTrigger>
+            <SelectContent>
+              {GENRES.map((g) => (
+                <SelectItem key={g} value={g}>{g}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Status</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as "watched" | "watchlist")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="watched">Watched</SelectItem>
+              <SelectItem value="watchlist">Watchlist</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isWatched && (
@@ -120,7 +146,7 @@ export function MovieForm({ defaultStatus, onSaved, onCancel }: Props) {
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving…" : editing ? "Save changes" : "Save"}
         </Button>
       </div>
     </form>
