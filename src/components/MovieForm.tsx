@@ -37,16 +37,14 @@ export function MovieForm({ defaultStatus, onSaved, onCancel }: Props) {
       return;
     }
     setSaving(true);
-    const payload: Record<string, unknown> = {
+    const payload = {
       title: title.trim(),
       genre,
       status: defaultStatus,
       notes: notes.trim() || null,
+      rating_score: isWatched && score ? Number(score) : null,
+      rating_max: isWatched && score ? Number(max) || 10 : null,
     };
-    if (isWatched && score) {
-      payload.rating_score = Number(score);
-      payload.rating_max = Number(max) || 10;
-    }
     const { error } = await supabase.from("movies").insert(payload);
     setSaving(false);
     if (error) {
