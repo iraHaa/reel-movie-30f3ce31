@@ -69,8 +69,8 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     background-image:
-      radial-gradient(at 20% 0%, oklch(0.25 0.04 150 / 0.45), transparent 50%),
-      radial-gradient(at 80% 100%, oklch(0.22 0.03 180 / 0.4), transparent 50%);
+      radial-gradient(at 20% 0%, oklch(0.22 0.05 145 / 0.40), transparent 50%),
+      radial-gradient(at 80% 100%, oklch(0.18 0.04 180 / 0.35), transparent 50%);
     background-attachment: fixed;
   }
   h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
