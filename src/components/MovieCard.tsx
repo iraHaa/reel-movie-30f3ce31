@@ -1,4 +1,4 @@
-import { Trash2, Check } from "lucide-react";
+import { Trash2, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,10 +18,12 @@ export interface Movie {
 interface Props {
   movie: Movie;
   onChanged: () => void;
+  onEdit: (movie: Movie) => void;
 }
 
-export function MovieCard({ movie, onChanged }: Props) {
+export function MovieCard({ movie, onChanged, onEdit }: Props) {
   async function remove() {
+    if (!confirm(`Delete "${movie.title}"?`)) return;
     const { error } = await supabase.from("movies").delete().eq("id", movie.id);
     if (error) return toast.error(error.message);
     toast.success("Removed.");
@@ -63,13 +65,16 @@ export function MovieCard({ movie, onChanged }: Props) {
         </p>
       )}
 
-      <div className="mt-4 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="mt-4 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         {movie.status === "watchlist" && (
           <Button size="sm" variant="secondary" onClick={markWatched}>
             <Check className="h-3.5 w-3.5" /> Mark watched
           </Button>
         )}
-        <Button size="sm" variant="ghost" onClick={remove} className="text-muted-foreground hover:text-destructive ml-auto">
+        <Button size="sm" variant="ghost" onClick={() => onEdit(movie)} className="ml-auto text-muted-foreground hover:text-foreground">
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={remove} className="text-muted-foreground hover:text-destructive">
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
