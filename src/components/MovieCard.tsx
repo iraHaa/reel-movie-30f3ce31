@@ -1,4 +1,4 @@
-import { Trash2, Check, Pencil } from "lucide-react";
+import { Trash2, Check, Pencil, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,12 +6,14 @@ import { toast } from "sonner";
 
 export interface Movie {
   id: string;
+  user_id: string;
   title: string;
   genre: string;
   status: "watched" | "watchlist";
   rating_score: number | null;
   rating_max: number | null;
   notes: string | null;
+  is_favorite: boolean;
   created_at: string;
 }
 
@@ -40,9 +42,26 @@ export function MovieCard({ movie, onChanged, onEdit }: Props) {
     onChanged();
   }
 
+  async function toggleFavorite() {
+    const { error } = await supabase
+      .from("movies")
+      .update({ is_favorite: !movie.is_favorite })
+      .eq("id", movie.id);
+    if (error) return toast.error(error.message);
+    onChanged();
+  }
+
   return (
     <article className="group relative rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/40">
-      <div className="flex items-start justify-between gap-3">
+      <button
+        onClick={toggleFavorite}
+        aria-label={movie.is_favorite ? "Remove from favorites" : "Add to favorites"}
+        className="absolute top-3 right-3 text-muted-foreground hover:text-primary transition-colors"
+      >
+        <Heart className={`h-4 w-4 ${movie.is_favorite ? "fill-primary text-primary" : ""}`} />
+      </button>
+
+      <div className="flex items-start justify-between gap-3 pr-6">
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-xl text-foreground leading-tight truncate">
             {movie.title}
