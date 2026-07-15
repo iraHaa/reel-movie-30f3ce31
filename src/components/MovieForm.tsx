@@ -17,12 +17,13 @@ import type { Movie } from "@/components/MovieCard";
 
 interface Props {
   defaultStatus: "watched" | "watchlist";
+  userId: string;
   movie?: Movie | null;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export function MovieForm({ defaultStatus, movie, onSaved, onCancel }: Props) {
+export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: Props) {
   const editing = !!movie;
   const [title, setTitle] = useState(movie?.title ?? "");
   const [genre, setGenre] = useState<string>(movie?.genre ?? "");
@@ -44,6 +45,7 @@ export function MovieForm({ defaultStatus, movie, onSaved, onCancel }: Props) {
     }
     setSaving(true);
     const payload = {
+      user_id: userId,
       title: title.trim(),
       genre,
       status,
