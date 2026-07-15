@@ -155,27 +155,36 @@ function Index() {
       <header className="border-b border-border/60">
         <div className="mx-auto max-w-6xl px-6 py-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Film className="h-6 w-6 text-primary" />
+            <Film className="h-6 w-6 text-primary" aria-hidden="true" />
             <div>
-              <h1 className="font-display text-2xl leading-none">Reel</h1>
+              <p className="font-display text-2xl leading-none">Reel Movie</p>
               <p className="text-xs text-muted-foreground mt-1 italic">your private movie hub</p>
             </div>
           </div>
-          <Button onClick={openAdd}>
-            <Plus className="h-4 w-4" /> Add movie
-          </Button>
+          <nav aria-label="Primary">
+            <Button onClick={openAdd}>
+              <Plus className="h-4 w-4" /> Add movie
+            </Button>
+          </nav>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <section className="mb-10 text-center">
-          <h2 className="font-display text-5xl md:text-6xl tracking-tight">
-            The movies you've <span className="italic text-primary">lived with</span>.
-          </h2>
+        <section className="mb-10 text-center" aria-labelledby="hero-title">
+          <h1
+            id="hero-title"
+            className="font-display text-5xl md:text-6xl tracking-tight"
+          >
+            Free Movie Tracker &amp; <span className="italic text-primary">Watchlist App</span>
+          </h1>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Keep what you've seen, what you've rated, and what's still waiting in the dark.
+            Track movies you've watched, rate your favorites, and organize your personal watchlist of films and TV shows.
           </p>
         </section>
+
+        <section aria-labelledby="collection-title">
+          <h2 id="collection-title" className="sr-only">Your movie collection</h2>
+
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "watched" | "watchlist")}>
           <div className="flex flex-col gap-4 mb-6">
