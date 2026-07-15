@@ -247,7 +247,15 @@ function Index() {
             <Grid loading={loading} movies={visible} onChanged={load} onEdit={openEdit} emptyLabel="Your watchlist is empty. What's next?" />
           </TabsContent>
         </Tabs>
+        </section>
       </main>
+
+      <footer className="border-t border-border/60 mt-16">
+        <div className="mx-auto max-w-6xl px-6 py-8 text-center text-xs text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Reel Movie — a free movie tracker &amp; watchlist app.</p>
+        </div>
+      </footer>
+
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
         <DialogContent>
