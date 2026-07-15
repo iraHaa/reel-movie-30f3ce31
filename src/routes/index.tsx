@@ -18,9 +18,52 @@ import { supabase } from "@/integrations/supabase/client";
 import { MovieCard, type Movie } from "@/components/MovieCard";
 import { MovieForm } from "@/components/MovieForm";
 
+const SITE_URL = "https://reel-movie.lovable.app";
+const PAGE_TITLE = "Reel Movie – Free Movie Tracker & Watchlist App";
+const PAGE_DESCRIPTION =
+  "Track movies you've watched, create your personal watchlist, discover new films and TV shows, rate your favorites, and organize your movie collection with Reel Movie.";
+const OG_IMAGE =
+  "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/357267f1-21d6-49e8-bbb2-07c67db05fa8/id-preview-292d5071--bb508a7d-37d8-4c55-b97d-9a557bcb4cd5.lovable.app-1780415684573.png";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: PAGE_TITLE },
+      { name: "description", content: PAGE_DESCRIPTION },
+      { property: "og:title", content: PAGE_TITLE },
+      { property: "og:description", content: PAGE_DESCRIPTION },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: SITE_URL + "/" },
+      { property: "og:image", content: OG_IMAGE },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: PAGE_TITLE },
+      { name: "twitter:description", content: PAGE_DESCRIPTION },
+      { name: "twitter:image", content: OG_IMAGE },
+    ],
+    links: [{ rel: "canonical", href: SITE_URL + "/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "Reel Movie",
+          url: SITE_URL,
+          description: PAGE_DESCRIPTION,
+          applicationCategory: "EntertainmentApplication",
+          operatingSystem: "Any",
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+          },
+        }),
+      },
+    ],
+  }),
   component: Index,
 });
+
 
 type SortKey = "recent" | "oldest" | "title-asc" | "title-desc" | "rating-desc" | "rating-asc";
 
