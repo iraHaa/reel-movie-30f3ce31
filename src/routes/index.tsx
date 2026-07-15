@@ -18,9 +18,52 @@ import { supabase } from "@/integrations/supabase/client";
 import { MovieCard, type Movie } from "@/components/MovieCard";
 import { MovieForm } from "@/components/MovieForm";
 
+const SITE_URL = "https://reel-movie.lovable.app";
+const PAGE_TITLE = "Reel Movie – Free Movie Tracker & Watchlist App";
+const PAGE_DESCRIPTION =
+  "Track movies you've watched, create your personal watchlist, discover new films and TV shows, rate your favorites, and organize your movie collection with Reel Movie.";
+const OG_IMAGE =
+  "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/357267f1-21d6-49e8-bbb2-07c67db05fa8/id-preview-292d5071--bb508a7d-37d8-4c55-b97d-9a557bcb4cd5.lovable.app-1780415684573.png";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: PAGE_TITLE },
+      { name: "description", content: PAGE_DESCRIPTION },
+      { property: "og:title", content: PAGE_TITLE },
+      { property: "og:description", content: PAGE_DESCRIPTION },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: SITE_URL + "/" },
+      { property: "og:image", content: OG_IMAGE },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: PAGE_TITLE },
+      { name: "twitter:description", content: PAGE_DESCRIPTION },
+      { name: "twitter:image", content: OG_IMAGE },
+    ],
+    links: [{ rel: "canonical", href: SITE_URL + "/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "Reel Movie",
+          url: SITE_URL,
+          description: PAGE_DESCRIPTION,
+          applicationCategory: "EntertainmentApplication",
+          operatingSystem: "Any",
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+          },
+        }),
+      },
+    ],
+  }),
   component: Index,
 });
+
 
 type SortKey = "recent" | "oldest" | "title-asc" | "title-desc" | "rating-desc" | "rating-asc";
 
@@ -112,27 +155,36 @@ function Index() {
       <header className="border-b border-border/60">
         <div className="mx-auto max-w-6xl px-6 py-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Film className="h-6 w-6 text-primary" />
+            <Film className="h-6 w-6 text-primary" aria-hidden="true" />
             <div>
-              <h1 className="font-display text-2xl leading-none">Reel</h1>
+              <p className="font-display text-2xl leading-none">Reel Movie</p>
               <p className="text-xs text-muted-foreground mt-1 italic">your private movie hub</p>
             </div>
           </div>
-          <Button onClick={openAdd}>
-            <Plus className="h-4 w-4" /> Add movie
-          </Button>
+          <nav aria-label="Primary">
+            <Button onClick={openAdd}>
+              <Plus className="h-4 w-4" /> Add movie
+            </Button>
+          </nav>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <section className="mb-10 text-center">
-          <h2 className="font-display text-5xl md:text-6xl tracking-tight">
-            The movies you've <span className="italic text-primary">lived with</span>.
-          </h2>
+        <section className="mb-10 text-center" aria-labelledby="hero-title">
+          <h1
+            id="hero-title"
+            className="font-display text-5xl md:text-6xl tracking-tight"
+          >
+            Free Movie Tracker &amp; <span className="italic text-primary">Watchlist App</span>
+          </h1>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Keep what you've seen, what you've rated, and what's still waiting in the dark.
+            Track movies you've watched, rate your favorites, and organize your personal watchlist of films and TV shows.
           </p>
         </section>
+
+        <section aria-labelledby="collection-title">
+          <h2 id="collection-title" className="sr-only">Your movie collection</h2>
+
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "watched" | "watchlist")}>
           <div className="flex flex-col gap-4 mb-6">
@@ -195,7 +247,15 @@ function Index() {
             <Grid loading={loading} movies={visible} onChanged={load} onEdit={openEdit} emptyLabel="Your watchlist is empty. What's next?" />
           </TabsContent>
         </Tabs>
+        </section>
       </main>
+
+      <footer className="border-t border-border/60 mt-16">
+        <div className="mx-auto max-w-6xl px-6 py-8 text-center text-xs text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Reel Movie — a free movie tracker &amp; watchlist app.</p>
+        </div>
+      </footer>
+
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
         <DialogContent>

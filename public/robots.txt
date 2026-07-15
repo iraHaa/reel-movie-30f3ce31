@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://reel-movie.lovable.app/sitemap.xml
