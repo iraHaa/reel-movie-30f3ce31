@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Film, LogOut, User as UserIcon } from "lucide-react";
+import { BarChart3, CalendarDays, Film, LogOut, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,7 +42,13 @@ export function AppHeader({ user, action }: Props) {
             <p className="text-xs text-muted-foreground mt-1 italic">your private movie hub</p>
           </div>
         </Link>
-        <nav aria-label="Primary" className="flex items-center gap-2">
+        <nav aria-label="Primary" className="flex items-center gap-1 sm:gap-2">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link to="/stats"><BarChart3 className="h-4 w-4" /> Stats</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link to="/calendar"><CalendarDays className="h-4 w-4" /> Calendar</Link>
+          </Button>
           {action}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -51,6 +57,15 @@ export function AppHeader({ user, action }: Props) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard"><Film className="h-4 w-4 mr-2" /> Dashboard</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/stats"><BarChart3 className="h-4 w-4 mr-2" /> Stats</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/calendar"><CalendarDays className="h-4 w-4 mr-2" /> Calendar</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/profile"><UserIcon className="h-4 w-4 mr-2" /> Profile</Link>
               </DropdownMenuItem>
