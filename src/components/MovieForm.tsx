@@ -32,6 +32,9 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
   );
   const [score, setScore] = useState(movie?.rating_score?.toString() ?? "");
   const [max, setMax] = useState(movie?.rating_max?.toString() ?? "10");
+  const [watchedAt, setWatchedAt] = useState(
+    movie?.watched_at ?? new Date().toISOString().slice(0, 10),
+  );
   const [notes, setNotes] = useState(movie?.notes ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +55,7 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
       notes: notes.trim() || null,
       rating_score: isWatched && score ? Number(score) : null,
       rating_max: isWatched && score ? Number(max) || 10 : null,
+      watched_at: isWatched ? watchedAt || null : null,
     };
     const { error } = editing
       ? await supabase.from("movies").update(payload).eq("id", movie!.id)
@@ -109,26 +113,38 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
       </div>
 
       {isWatched && (
-        <div className="space-y-2">
-          <Label>Your rating</Label>
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Your rating</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                value={score}
+                onChange={(e) => setScore(e.target.value)}
+                placeholder="8.5"
+                className="w-20"
+              />
+              <span className="text-muted-foreground font-display text-xl">/</span>
+              <Input
+                type="number"
+                step="1"
+                min="1"
+                value={max}
+                onChange={(e) => setMax(e.target.value)}
+                className="w-20"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="watched_at">Watched on</Label>
             <Input
-              type="number"
-              step="0.1"
-              min="0"
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-              placeholder="8.5"
-              className="w-24"
-            />
-            <span className="text-muted-foreground font-display text-xl">/</span>
-            <Input
-              type="number"
-              step="1"
-              min="1"
-              value={max}
-              onChange={(e) => setMax(e.target.value)}
-              className="w-24"
+              id="watched_at"
+              type="date"
+              value={watchedAt}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setWatchedAt(e.target.value)}
             />
           </div>
         </div>

@@ -15,6 +15,7 @@ export interface Movie {
   notes: string | null;
   is_favorite: boolean;
   created_at: string;
+  watched_at: string | null;
 }
 
 interface Props {
