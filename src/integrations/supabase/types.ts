@@ -26,6 +26,7 @@ export type Database = {
           status: string
           title: string
           user_id: string
+          watched_at: string | null
         }
         Insert: {
           created_at?: string
@@ -38,6 +39,7 @@ export type Database = {
           status?: string
           title: string
           user_id: string
+          watched_at?: string | null
         }
         Update: {
           created_at?: string
@@ -50,6 +52,7 @@ export type Database = {
           status?: string
           title?: string
           user_id?: string
+          watched_at?: string | null
         }
         Relationships: []
       }
