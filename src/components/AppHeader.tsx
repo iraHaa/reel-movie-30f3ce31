@@ -44,9 +44,12 @@ export function AppHeader({ user, action }: Props) {
         </Link>
         <nav aria-label="Primary" className="flex items-center gap-1 sm:gap-2">
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link to="/feed"><Users className="h-4 w-4" /> Feed</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
             <Link to="/stats"><BarChart3 className="h-4 w-4" /> Stats</Link>
           </Button>
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
             <Link to="/calendar"><CalendarDays className="h-4 w-4" /> Calendar</Link>
           </Button>
           {action}
