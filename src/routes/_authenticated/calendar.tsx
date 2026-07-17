@@ -31,11 +31,12 @@ function CalendarPage() {
       const { data } = await supabase
         .from("movies")
         .select("*")
+        .eq("user_id", user.id)
         .eq("status", "watched");
       if (data) setMovies(data as Movie[]);
       setLoading(false);
     })();
-  }, []);
+  }, [user.id]);
 
   const byDay = useMemo(() => {
     const m = new Map<string, Movie[]>();
