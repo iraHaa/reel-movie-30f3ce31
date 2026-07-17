@@ -41,11 +41,11 @@ function StatsPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("movies").select("*");
+      const { data } = await supabase.from("movies").select("*").eq("user_id", user.id);
       if (data) setMovies(data as Movie[]);
       setLoading(false);
     })();
-  }, []);
+  }, [user.id]);
 
   const stats = useMemo(() => {
     const watched = movies.filter((m) => m.status === "watched");
