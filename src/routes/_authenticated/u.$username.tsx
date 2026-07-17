@@ -66,7 +66,7 @@ function PublicProfile() {
       .ilike("username", username)
       .maybeSingle();
 
-    if (!p) { setLoading(false); throw notFound(); }
+    if (!p) { setProfile(null); setLoading(false); return; }
     const prof = p as PublicProfileData;
     setProfile(prof);
 
