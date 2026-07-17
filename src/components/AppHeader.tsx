@@ -64,6 +64,9 @@ export function AppHeader({ user, action }: Props) {
                 <Link to="/dashboard"><Film className="h-4 w-4 mr-2" /> Dashboard</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/feed"><Users className="h-4 w-4 mr-2" /> Feed</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/stats"><BarChart3 className="h-4 w-4 mr-2" /> Stats</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
