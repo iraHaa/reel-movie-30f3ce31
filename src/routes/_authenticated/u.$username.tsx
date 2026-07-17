@@ -126,7 +126,12 @@ function PublicProfile() {
 
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading…</p>
-        ) : !profile ? null : (
+        ) : !profile ? (
+          <div className="text-center py-16">
+            <h2 className="font-display text-2xl mb-2">Profile not found</h2>
+            <p className="text-sm text-muted-foreground">This user doesn't exist or their profile is private.</p>
+          </div>
+        ) : (
           <>
             <header className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-4 sm:gap-6 mb-8">
               {avatarUrl ? (
