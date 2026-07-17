@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, CalendarDays, Film, LogOut, User as UserIcon } from "lucide-react";
+import { BarChart3, CalendarDays, Film, LogOut, User as UserIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
