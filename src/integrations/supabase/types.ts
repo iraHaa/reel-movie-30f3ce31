@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       movies: {
         Row: {
           created_at: string
@@ -63,7 +84,11 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_public: boolean
+          show_followers: boolean
+          show_following: boolean
           updated_at: string
+          username: string
         }
         Insert: {
           avatar_url?: string | null
@@ -71,7 +96,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          is_public?: boolean
+          show_followers?: boolean
+          show_following?: boolean
           updated_at?: string
+          username: string
         }
         Update: {
           avatar_url?: string | null
@@ -79,7 +108,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_public?: boolean
+          show_followers?: boolean
+          show_following?: boolean
           updated_at?: string
+          username?: string
         }
         Relationships: []
       }
