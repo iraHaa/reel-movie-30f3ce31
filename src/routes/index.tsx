@@ -78,8 +78,8 @@ function Landing() {
       </header>
 
       <main className="flex-1 mx-auto max-w-4xl px-6 py-20 text-center">
-        <h1 className="font-display text-5xl md:text-7xl tracking-tight">
-          Your private <span className="italic text-primary">movie hub</span>
+        <h1 className="font-display text-4xl sm:text-5xl md:text-7xl tracking-tight">
+          Free <span className="italic text-primary">Movie Tracker</span> &amp; Watchlist App
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
           Track movies you've watched, rate your favorites, and organize your personal
