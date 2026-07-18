@@ -35,6 +35,113 @@ export type Database = {
         }
         Relationships: []
       }
+      list_invites: {
+        Row: {
+          created_at: string
+          id: string
+          invitee_id: string
+          list_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invitee_id: string
+          list_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invitee_id?: string
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_invites_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_items: {
+        Row: {
+          added_at: string
+          id: string
+          list_id: string
+          movie_id: string
+          position: number
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          list_id: string
+          movie_id: string
+          position?: number
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          list_id?: string
+          movie_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lists: {
+        Row: {
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          share_slug: string | null
+          sort_mode: string
+          title: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          share_slug?: string | null
+          sort_mode?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          share_slug?: string | null
+          sort_mode?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       movies: {
         Row: {
           created_at: string
@@ -121,7 +228,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_list_by_share_slug: {
+        Args: { _slug: string }
+        Returns: {
+          created_at: string
+          description: string
+          emoji: string
+          id: string
+          share_slug: string
+          sort_mode: string
+          title: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }[]
+      }
+      get_list_items_by_share_slug: {
+        Args: { _slug: string }
+        Returns: {
+          created_at: string
+          genre: string
+          id: string
+          is_favorite: boolean
+          notes: string | null
+          rating_max: number | null
+          rating_score: number | null
+          status: string
+          title: string
+          user_id: string
+          watched_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "movies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       [_ in never]: never
