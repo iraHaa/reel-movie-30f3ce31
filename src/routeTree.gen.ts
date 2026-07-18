@@ -20,6 +20,7 @@ import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/f
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedListsIndexRouteImport } from './routes/_authenticated/lists.index'
+import { Route as ListsShareSlugRouteImport } from './routes/lists.share.$slug'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedListsIdRouteImport } from './routes/_authenticated/lists.$id'
 
@@ -77,6 +78,11 @@ const AuthenticatedListsIndexRoute = AuthenticatedListsIndexRouteImport.update({
   path: '/lists/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ListsShareSlugRoute = ListsShareSlugRouteImport.update({
+  id: '/lists/share/$slug',
+  path: '/lists/share/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
   id: '/u/$username',
   path: '/u/$username',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof AuthenticatedStatsRoute
   '/lists/$id': typeof AuthenticatedListsIdRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
+  '/lists/share/$slug': typeof ListsShareSlugRoute
   '/lists/': typeof AuthenticatedListsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/stats': typeof AuthenticatedStatsRoute
   '/lists/$id': typeof AuthenticatedListsIdRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
+  '/lists/share/$slug': typeof ListsShareSlugRoute
   '/lists': typeof AuthenticatedListsIndexRoute
 }
 export interface FileRoutesById {
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated/stats': typeof AuthenticatedStatsRoute
   '/_authenticated/lists/$id': typeof AuthenticatedListsIdRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRoute
+  '/lists/share/$slug': typeof ListsShareSlugRoute
   '/_authenticated/lists/': typeof AuthenticatedListsIndexRoute
 }
 export interface FileRouteTypes {
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/lists/$id'
     | '/u/$username'
+    | '/lists/share/$slug'
     | '/lists/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/lists/$id'
     | '/u/$username'
+    | '/lists/share/$slug'
     | '/lists'
   id:
     | '__root__'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/_authenticated/stats'
     | '/_authenticated/lists/$id'
     | '/_authenticated/u/$username'
+    | '/lists/share/$slug'
     | '/_authenticated/lists/'
   fileRoutesById: FileRoutesById
 }
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ListsShareSlugRoute: typeof ListsShareSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedListsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/lists/share/$slug': {
+      id: '/lists/share/$slug'
+      path: '/lists/share/$slug'
+      fullPath: '/lists/share/$slug'
+      preLoaderRoute: typeof ListsShareSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/u/$username': {
       id: '/_authenticated/u/$username'
       path: '/u/$username'
@@ -313,6 +333,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ListsShareSlugRoute: ListsShareSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, CalendarDays, Film, LogOut, User as UserIcon, Users } from "lucide-react";
+import { BarChart3, CalendarDays, Film, ListChecks, LogOut, User as UserIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -46,6 +46,9 @@ export function AppHeader({ user, action }: Props) {
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link to="/feed"><Users className="h-4 w-4" /> Feed</Link>
           </Button>
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link to="/lists"><ListChecks className="h-4 w-4" /> Lists</Link>
+          </Button>
           <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
             <Link to="/stats"><BarChart3 className="h-4 w-4" /> Stats</Link>
           </Button>
@@ -65,6 +68,9 @@ export function AppHeader({ user, action }: Props) {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/feed"><Users className="h-4 w-4 mr-2" /> Feed</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/lists"><ListChecks className="h-4 w-4 mr-2" /> Lists</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/stats"><BarChart3 className="h-4 w-4 mr-2" /> Stats</Link>
