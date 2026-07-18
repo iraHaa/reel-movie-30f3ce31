@@ -16,10 +16,10 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedStatsRouteImport } from './routes/_authenticated/stats'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
-import { Route as AuthenticatedListsRouteImport } from './routes/_authenticated/lists'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
+import { Route as AuthenticatedListsIndexRouteImport } from './routes/_authenticated/lists.index'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -56,11 +56,6 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedListsRoute = AuthenticatedListsRouteImport.update({
-  id: '/lists',
-  path: '/lists',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   id: '/feed',
   path: '/feed',
@@ -74,6 +69,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedListsIndexRoute = AuthenticatedListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
@@ -90,10 +90,10 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/feed': typeof AuthenticatedFeedRoute
-  '/lists': typeof AuthenticatedListsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
+  '/lists/': typeof AuthenticatedListsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,10 +103,10 @@ export interface FileRoutesByTo {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/feed': typeof AuthenticatedFeedRoute
-  '/lists': typeof AuthenticatedListsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
+  '/lists': typeof AuthenticatedListsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,10 +118,10 @@ export interface FileRoutesById {
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
-  '/_authenticated/lists': typeof AuthenticatedListsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/stats': typeof AuthenticatedStatsRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRoute
+  '/_authenticated/lists/': typeof AuthenticatedListsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -133,10 +133,10 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/dashboard'
     | '/feed'
-    | '/lists'
     | '/profile'
     | '/stats'
     | '/u/$username'
+    | '/lists/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -146,10 +146,10 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/dashboard'
     | '/feed'
-    | '/lists'
     | '/profile'
     | '/stats'
     | '/u/$username'
+    | '/lists'
   id:
     | '__root__'
     | '/'
@@ -160,10 +160,10 @@ export interface FileRouteTypes {
     | '/_authenticated/calendar'
     | '/_authenticated/dashboard'
     | '/_authenticated/feed'
-    | '/_authenticated/lists'
     | '/_authenticated/profile'
     | '/_authenticated/stats'
     | '/_authenticated/u/$username'
+    | '/_authenticated/lists/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -225,13 +225,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/lists': {
-      id: '/_authenticated/lists'
-      path: '/lists'
-      fullPath: '/lists'
-      preLoaderRoute: typeof AuthenticatedListsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/feed': {
       id: '/_authenticated/feed'
       path: '/feed'
@@ -253,6 +246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lists/': {
+      id: '/_authenticated/lists/'
+      path: '/lists'
+      fullPath: '/lists/'
+      preLoaderRoute: typeof AuthenticatedListsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/u/$username': {
       id: '/_authenticated/u/$username'
       path: '/u/$username'
@@ -267,20 +267,20 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
-  AuthenticatedListsRoute: typeof AuthenticatedListsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedStatsRoute: typeof AuthenticatedStatsRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRoute
+  AuthenticatedListsIndexRoute: typeof AuthenticatedListsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
-  AuthenticatedListsRoute: AuthenticatedListsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedStatsRoute: AuthenticatedStatsRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRoute,
+  AuthenticatedListsIndexRoute: AuthenticatedListsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

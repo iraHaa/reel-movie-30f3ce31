@@ -13,7 +13,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { EMOJI_CHOICES, newShareSlug, type ListVisibility, type MovieList } from "@/lib/lists";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/lists")({
+export const Route = createFileRoute("/_authenticated/lists/")({
   head: () => ({ meta: [{ title: "Your lists – Reel Movie" }, { name: "robots", content: "noindex" }] }),
   component: ListsPage,
 });
