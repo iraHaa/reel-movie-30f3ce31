@@ -77,14 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "Reel Movie – Free Movie Tracker & Watchlist App" },
+      { name: "application-name", content: "Reel Movie" },
+      { name: "apple-mobile-web-app-title", content: "Reel Movie" },
       { name: "author", content: "Reel Movie" },
       { property: "og:site_name", content: "Reel Movie" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Reel Movie" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -93,6 +98,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Reel Movie",
+          alternateName: "Reel Movie – Movie Tracker & Watchlist",
+          url: "https://reel-movie.lovable.app",
+        }),
+      },
       {
         type: "application/ld+json",
         children: JSON.stringify({
