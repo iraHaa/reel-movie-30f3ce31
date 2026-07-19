@@ -45,6 +45,7 @@ function ListsPage() {
       setRows(lists.map((l, i) => ({ ...l, count: counts[i] })));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not load your lists.");
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -117,7 +118,7 @@ function ListsPage() {
             if (mode === "created") return [{ ...saved, count: 0 }, ...current];
             return current.map((row) => row.id === saved.id ? { ...saved, count: row.count } : row);
           });
-          void load();
+          void load().catch(() => undefined);
         }}
       />
     </div>
