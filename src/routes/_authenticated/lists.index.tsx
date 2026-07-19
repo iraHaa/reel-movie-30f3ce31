@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/lists/")({
 });
 
 interface RowWithCount extends MovieList { count: number }
+type SaveMode = "created" | "updated";
 
 function ListsPage() {
   const { user } = Route.useRouteContext();
@@ -29,15 +30,24 @@ function ListsPage() {
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase.from("lists").select("*").eq("user_id", user.id).order("updated_at", { ascending: false });
-    const lists = (data ?? []) as MovieList[];
-    // fetch counts in parallel
-    const counts = await Promise.all(lists.map((l) =>
-      supabase.from("list_items").select("*", { count: "exact", head: true }).eq("list_id", l.id)
-        .then(r => r.count ?? 0)
-    ));
-    setRows(lists.map((l, i) => ({ ...l, count: counts[i] })));
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from("lists").select("*").eq("user_id", user.id).order("updated_at", { ascending: false });
+      if (error) throw error;
+      const lists = (data ?? []) as MovieList[];
+      const counts = await Promise.all(lists.map(async (l) => {
+        const { count, error: countError } = await supabase
+          .from("list_items")
+          .select("*", { count: "exact", head: true })
+          .eq("list_id", l.id);
+        if (countError) throw countError;
+        return count ?? 0;
+      }));
+      setRows(lists.map((l, i) => ({ ...l, count: counts[i] })));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load your lists.");
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { load(); }, []);
 
@@ -96,7 +106,20 @@ function ListsPage() {
         )}
       </main>
 
-      <ListDialog open={open} onOpenChange={setOpen} userId={user.id} list={editing} onSaved={() => { setOpen(false); load(); }} />
+      <ListDialog
+        open={open}
+        onOpenChange={setOpen}
+        userId={user.id}
+        list={editing}
+        onSaved={(saved, mode) => {
+          setOpen(false);
+          setRows((current) => {
+            if (mode === "created") return [{ ...saved, count: 0 }, ...current];
+            return current.map((row) => row.id === saved.id ? { ...saved, count: row.count } : row);
+          });
+          void load();
+        }}
+      />
     </div>
   );
 }
@@ -111,7 +134,7 @@ function VisibilityIcon({ v }: { v: ListVisibility }) {
 function ListDialog({
   open, onOpenChange, userId, list, onSaved,
 }: {
-  open: boolean; onOpenChange: (o: boolean) => void; userId: string; list: MovieList | null; onSaved: () => void;
+  open: boolean; onOpenChange: (o: boolean) => void; userId: string; list: MovieList | null; onSaved: (list: MovieList, mode: SaveMode) => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -138,18 +161,32 @@ function ListDialog({
       visibility,
       share_slug: visibility === "shared" ? (list?.share_slug ?? newShareSlug()) : (list?.share_slug ?? null),
     };
-    if (list) {
-      const { error } = await supabase.from("lists").update(payload).eq("id", list.id);
+    try {
+      if (list) {
+        const { data, error } = await supabase
+          .from("lists")
+          .update(payload)
+          .eq("id", list.id)
+          .select()
+          .single();
+        if (error) throw error;
+        toast.success("List updated");
+        onSaved(data as MovieList, "updated");
+      } else {
+        const { data, error } = await supabase
+          .from("lists")
+          .insert({ ...payload, user_id: userId })
+          .select()
+          .single();
+        if (error) throw error;
+        toast.success("List created");
+        onSaved(data as MovieList, "created");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save the list.");
+    } finally {
       setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("List updated");
-    } else {
-      const { error } = await supabase.from("lists").insert({ ...payload, user_id: userId });
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("List created");
     }
-    onSaved();
   }
 
   return (
