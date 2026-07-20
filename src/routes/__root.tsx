@@ -102,6 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         children: `window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', 'G-TK7C47K8S6');`,
       },
+      { src: "https://analytics.ahrefs.com/analytics.js", async: true, "data-key": "8qtP2KR97cKZrRWMzT0roA" },
       {
         type: "application/ld+json",
         children: JSON.stringify({
