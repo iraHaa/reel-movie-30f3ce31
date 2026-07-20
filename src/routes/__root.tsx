@@ -98,6 +98,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     scripts: [
+      { src: "https://www.googletagmanager.com/gtag/js?id=G-TK7C47K8S6", async: true },
+      {
+        children: `window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', 'G-TK7C47K8S6');`,
+      },
       {
         type: "application/ld+json",
         children: JSON.stringify({
