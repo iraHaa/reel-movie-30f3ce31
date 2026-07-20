@@ -10,27 +10,43 @@ interface SitemapEntry {
   priority?: string;
 }
 
+/**
+ * Public, indexable routes only.
+ *
+ * Excluded on purpose:
+ * - /_authenticated/* (dashboard, profile, feed, calendar, stats, u/$username) — auth-gated
+ * - /auth, /reset-password — auth flows, should not be indexed
+ * - /api/* — server endpoints
+ * - /sitemap.xml, /robots.txt — infra
+ * - Any URL with query parameters
+ *
+ * When adding a new PUBLIC top-level route under src/routes/, add it here.
+ */
+const PUBLIC_ROUTES: SitemapEntry[] = [
+  { path: "/", changefreq: "weekly", priority: "1.0" },
+];
+
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
         const today = new Date().toISOString().split("T")[0];
-        const entries: SitemapEntry[] = [
-          { path: "/", lastmod: today, changefreq: "weekly", priority: "1.0" },
-        ];
 
-        const urls = entries.map((e) =>
-          [
-            `  <url>`,
-            `    <loc>${BASE_URL}${e.path}</loc>`,
-            e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
-            e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
-            e.priority ? `    <priority>${e.priority}</priority>` : null,
-            `  </url>`,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        );
+        const urls = PUBLIC_ROUTES
+          .filter((e) => !e.path.includes("?"))
+          .map((e) => {
+            const lastmod = e.lastmod ?? today;
+            return [
+              `  <url>`,
+              `    <loc>${BASE_URL}${e.path}</loc>`,
+              `    <lastmod>${lastmod}</lastmod>`,
+              e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
+              e.priority ? `    <priority>${e.priority}</priority>` : null,
+              `  </url>`,
+            ]
+              .filter(Boolean)
+              .join("\n");
+          });
 
         const xml = [
           `<?xml version="1.0" encoding="UTF-8"?>`,
@@ -41,8 +57,9 @@ export const Route = createFileRoute("/sitemap.xml")({
 
         return new Response(xml, {
           headers: {
-            "Content-Type": "application/xml",
-            "Cache-Control": "public, max-age=3600",
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=3600, s-maxage=3600",
+            "X-Robots-Tag": "noindex",
           },
         });
       },
