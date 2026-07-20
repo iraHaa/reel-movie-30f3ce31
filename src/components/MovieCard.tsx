@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AddToListMenu } from "@/components/AddToListMenu";
 
 export interface Movie {
   id: string;
@@ -93,7 +92,6 @@ export function MovieCard({ movie, onChanged, onEdit }: Props) {
           </Button>
         )}
         <div className="ml-auto flex items-center gap-1">
-          <AddToListMenu movieId={movie.id} userId={movie.user_id} />
           <Button size="sm" variant="ghost" onClick={() => onEdit(movie)} className="text-muted-foreground hover:text-foreground">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
