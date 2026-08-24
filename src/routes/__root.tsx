@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import bgAsset from "../assets/background.png.asset.json";
+
 
 function NotFoundComponent() {
   return (
@@ -77,7 +79,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Reel Movie – Free Movie Tracker & Watchlist App" },
+      { title: "Reel Movie – Free Movie & TV Show Tracker" },
       { name: "application-name", content: "Reel Movie" },
       { name: "apple-mobile-web-app-title", content: "Reel Movie" },
       { name: "author", content: "Reel Movie" },
@@ -109,7 +111,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "Reel Movie",
-          alternateName: "Reel Movie – Movie Tracker & Watchlist",
+          alternateName: "Reel Movie – Free Movie & TV Show Tracker",
           url: "https://reel-movie.lovable.app",
         }),
       },
@@ -150,8 +152,18 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${bgAsset.url})`, filter: "brightness(1.18)" }}
+      />
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-background/60"
+      />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
   );
 }
+

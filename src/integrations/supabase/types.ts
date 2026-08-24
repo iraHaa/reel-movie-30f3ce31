@@ -35,41 +35,128 @@ export type Database = {
         }
         Relationships: []
       }
+      movie_cache: {
+        Row: {
+          actors: string | null
+          backdrop_url: string | null
+          created_at: string
+          director: string | null
+          genres: string[] | null
+          imdb_id: string
+          imdb_rating: number | null
+          media_type: string
+          overview: string | null
+          poster_url: string | null
+          raw: Json | null
+          release_year: number | null
+          runtime: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actors?: string | null
+          backdrop_url?: string | null
+          created_at?: string
+          director?: string | null
+          genres?: string[] | null
+          imdb_id: string
+          imdb_rating?: number | null
+          media_type?: string
+          overview?: string | null
+          poster_url?: string | null
+          raw?: Json | null
+          release_year?: number | null
+          runtime?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actors?: string | null
+          backdrop_url?: string | null
+          created_at?: string
+          director?: string | null
+          genres?: string[] | null
+          imdb_id?: string
+          imdb_rating?: number | null
+          media_type?: string
+          overview?: string | null
+          poster_url?: string | null
+          raw?: Json | null
+          release_year?: number | null
+          runtime?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       movies: {
         Row: {
+          actors: string | null
+          backdrop_url: string | null
           created_at: string
+          director: string | null
           genre: string
+          genres: string[] | null
           id: string
+          imdb_id: string | null
+          imdb_rating: number | null
           is_favorite: boolean
+          media_type: string
           notes: string | null
+          overview: string | null
+          poster_url: string | null
           rating_max: number | null
           rating_score: number | null
+          release_year: number | null
+          runtime: number | null
           status: string
           title: string
           user_id: string
           watched_at: string | null
         }
         Insert: {
+          actors?: string | null
+          backdrop_url?: string | null
           created_at?: string
+          director?: string | null
           genre: string
+          genres?: string[] | null
           id?: string
+          imdb_id?: string | null
+          imdb_rating?: number | null
           is_favorite?: boolean
+          media_type?: string
           notes?: string | null
+          overview?: string | null
+          poster_url?: string | null
           rating_max?: number | null
           rating_score?: number | null
+          release_year?: number | null
+          runtime?: number | null
           status?: string
           title: string
           user_id: string
           watched_at?: string | null
         }
         Update: {
+          actors?: string | null
+          backdrop_url?: string | null
           created_at?: string
+          director?: string | null
           genre?: string
+          genres?: string[] | null
           id?: string
+          imdb_id?: string | null
+          imdb_rating?: number | null
           is_favorite?: boolean
+          media_type?: string
           notes?: string | null
+          overview?: string | null
+          poster_url?: string | null
           rating_max?: number | null
           rating_score?: number | null
+          release_year?: number | null
+          runtime?: number | null
           status?: string
           title?: string
           user_id?: string

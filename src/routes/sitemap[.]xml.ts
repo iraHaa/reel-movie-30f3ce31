@@ -14,7 +14,7 @@ interface SitemapEntry {
  * Public, indexable routes only.
  *
  * Excluded on purpose:
- * - /_authenticated/* (dashboard, profile, feed, calendar, stats, u/$username) — auth-gated
+ * - /_authenticated/* (dashboard, profile, calendar, stats) — auth-gated
  * - /auth, /reset-password — auth flows, should not be indexed
  * - /api/* — server endpoints
  * - /sitemap.xml, /robots.txt — infra
@@ -24,6 +24,7 @@ interface SitemapEntry {
  */
 const PUBLIC_ROUTES: SitemapEntry[] = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
+  { path: "/discover", changefreq: "daily", priority: "0.8" },
 ];
 
 export const Route = createFileRoute("/sitemap.xml")({

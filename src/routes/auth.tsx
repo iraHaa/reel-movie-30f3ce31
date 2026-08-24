@@ -9,7 +9,20 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+interface AuthSearch {
+  mode?: "login" | "signup";
+  redirect?: string;
+}
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): AuthSearch => ({
+    mode: search.mode === "signup" ? "signup" : search.mode === "login" ? "login" : undefined,
+    // only same-origin paths are honoured
+    redirect:
+      typeof search.redirect === "string" && search.redirect.startsWith("/") && !search.redirect.startsWith("//")
+        ? search.redirect
+        : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Sign in – Reel Movie" },
@@ -22,17 +35,20 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const { mode: initialMode, redirect } = Route.useSearch();
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">(initialMode ?? "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const destination = redirect ?? "/dashboard";
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/dashboard", replace: true });
+      if (data.user) navigate({ to: destination, replace: true });
     });
-  }, [navigate]);
+  }, [navigate, destination]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,7 +58,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back.");
-        navigate({ to: "/dashboard", replace: true });
+        navigate({ to: destination, replace: true });
       } else if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,

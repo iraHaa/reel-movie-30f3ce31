@@ -35,7 +35,6 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("recent");
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -95,8 +94,7 @@ function Dashboard() {
   const listCount = movies.filter((m) => m.status === "watchlist").length;
   const favCount = movies.filter((m) => m.is_favorite).length;
 
-  function openAdd() { setEditing(null); setOpen(true); }
-  function openEdit(m: Movie) { setEditing(m); setOpen(true); }
+  function openAdd() { setOpen(true); }
 
   const formStatus: "watched" | "watchlist" = tab === "watchlist" ? "watchlist" : "watched";
 
@@ -105,12 +103,12 @@ function Dashboard() {
       <Toaster theme="dark" position="top-center" />
       <AppHeader
         user={user}
-        action={<Button onClick={openAdd}><Plus className="h-4 w-4" /> Add movie</Button>}
+        action={<Button onClick={openAdd}><Plus className="h-4 w-4" /> Add title</Button>}
       />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <section aria-labelledby="collection-title">
-          <h1 id="collection-title" className="font-display text-4xl mb-8">Your movies</h1>
+          <h1 id="collection-title" className="font-display text-4xl mb-8">Your library</h1>
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
             <div className="flex flex-col gap-4 mb-6">
@@ -150,31 +148,30 @@ function Dashboard() {
             </div>
 
             <TabsContent value="watched" className="mt-0">
-              <Grid loading={loading} movies={visible} onChanged={load} onEdit={openEdit} emptyLabel="No watched movies yet — add the first one." />
+              <Grid loading={loading} movies={visible} onChanged={load} emptyLabel="No watched movies yet — add the first one." />
             </TabsContent>
             <TabsContent value="watchlist" className="mt-0">
-              <Grid loading={loading} movies={visible} onChanged={load} onEdit={openEdit} emptyLabel="Your watchlist is empty. What's next?" />
+              <Grid loading={loading} movies={visible} onChanged={load} emptyLabel="Your watchlist is empty. What's next?" />
             </TabsContent>
             <TabsContent value="favorites" className="mt-0">
-              <Grid loading={loading} movies={visible} onChanged={load} onEdit={openEdit} emptyLabel="Tap the heart on any movie to add it to favorites." />
+              <Grid loading={loading} movies={visible} onChanged={load} emptyLabel="Tap the heart on any movie to add it to favorites." />
             </TabsContent>
           </Tabs>
         </section>
       </main>
 
-      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
-              {editing ? "Edit movie" : formStatus === "watched" ? "Log a movie you watched" : "Add to your watchlist"}
+              {formStatus === "watched" ? "Log a movie you watched" : "Add to your watchlist"}
             </DialogTitle>
           </DialogHeader>
           <MovieForm
             defaultStatus={formStatus}
             userId={user.id}
-            movie={editing}
-            onSaved={() => { setOpen(false); setEditing(null); load(); }}
-            onCancel={() => { setOpen(false); setEditing(null); }}
+            onSaved={() => { setOpen(false); load(); }}
+            onCancel={() => setOpen(false)}
           />
         </DialogContent>
       </Dialog>
@@ -183,8 +180,8 @@ function Dashboard() {
 }
 
 function Grid({
-  movies, loading, onChanged, onEdit, emptyLabel,
-}: { movies: Movie[]; loading: boolean; onChanged: () => void; onEdit: (m: Movie) => void; emptyLabel: string }) {
+  movies, loading, onChanged, emptyLabel,
+}: { movies: Movie[]; loading: boolean; onChanged: () => void; emptyLabel: string }) {
   if (loading) return <p className="text-muted-foreground text-sm py-12 text-center">Loading…</p>;
   if (movies.length === 0) {
     return (
@@ -194,9 +191,9 @@ function Grid({
     );
   }
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {movies.map((m) => (
-        <MovieCard key={m.id} movie={m} onChanged={onChanged} onEdit={onEdit} />
+        <MovieCard key={m.id} movie={m} onChanged={onChanged} />
       ))}
     </div>
   );

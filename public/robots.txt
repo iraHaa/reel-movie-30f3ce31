@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://reel-movie.lovable.app/sitemap.xml
+Sitemap: https://www.reel-movie.lovable.app/sitemap.xml
