@@ -107,10 +107,10 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
   }, [query, editing, selected, search]);
 
   function pickResult(r: OmdbSearchResult) {
-    const existingId = library.get(r.imdbID);
-    if (existingId) {
+    if (library.has(r.imdbID)) {
+      // Already in the user's library — open the canonical public movie page.
       onCancel();
-      navigate({ to: "/movie/$id", params: { id: existingId } });
+      navigate({ to: "/movie/$id", params: { id: r.imdbID } });
       return;
     }
     setSelected(r);

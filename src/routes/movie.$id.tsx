@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Heart, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,65 +10,162 @@ import { AppHeader } from "@/components/AppHeader";
 import { AuthGateDialog } from "@/components/AuthGateDialog";
 import { MovieForm } from "@/components/MovieForm";
 import { useAuth } from "@/hooks/useAuth";
+import { getPublicMovie, type PublicMovie } from "@/lib/movies.functions";
 import type { Movie } from "@/components/MovieCard";
 import { toast } from "sonner";
 
+const SITE_URL = "https://reel-movie.lovable.app";
+
+function truncate(text: string, max = 160): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${cut.slice(0, lastSpace > 80 ? lastSpace : max).trimEnd()}…`;
+}
+
+function movieTitle(movie: PublicMovie): string {
+  const year = movie.release_year ? ` (${movie.release_year})` : "";
+  const details =
+    movie.imdb_rating != null ? "IMDb Rating, Cast & Details" : "Cast & Details";
+  return `${movie.title}${year} – ${details} | Reel Movie`;
+}
+
+function movieDescription(movie: PublicMovie): string {
+  if (movie.overview) return truncate(movie.overview);
+  const year = movie.release_year ? ` (${movie.release_year})` : "";
+  const genres = movie.genres.length ? `${movie.genres.join(", ")} · ` : "";
+  return `${genres}See poster, cast, director and more for ${movie.title}${year} on Reel Movie.`;
+}
+
+function parseImdbVotes(raw: unknown): number | null {
+  if (!raw || typeof raw !== "object") return null;
+  const votes = (raw as Record<string, unknown>).imdbVotes;
+  if (typeof votes !== "string") return null;
+  const digits = votes.replace(/[^0-9]/g, "");
+  if (!digits) return null;
+  const n = Number(digits);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function buildJsonLd(movie: PublicMovie) {
+  const canonical = `${SITE_URL}/movie/${movie.imdb_id}`;
+  const votes = parseImdbVotes(movie.raw);
+  const people = (value: string) =>
+    value
+      .split(",")
+      .map((n) => n.trim())
+      .filter((n) => n && n !== "N/A")
+      .map((name) => ({ "@type": "Person", name }));
+
+  const ld: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": movie.media_type === "series" ? "TVSeries" : "Movie",
+    name: movie.title,
+    url: canonical,
+    sameAs: `https://www.imdb.com/title/${movie.imdb_id}/`,
+  };
+  if (movie.poster_url) ld.image = movie.poster_url;
+  if (movie.release_year) ld.datePublished = String(movie.release_year);
+  if (movie.genres.length) ld.genre = movie.genres;
+  if (movie.overview) ld.description = movie.overview;
+  if (movie.runtime) ld.duration = `PT${movie.runtime}M`;
+  if (movie.director) ld.director = people(movie.director);
+  if (movie.actors) ld.actor = people(movie.actors);
+  // Only emit aggregateRating when the vote count is genuinely available in
+  // the cached OMDb payload — never fabricate a rating count.
+  if (movie.imdb_rating != null && votes != null) {
+    ld.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: movie.imdb_rating,
+      bestRating: 10,
+      ratingCount: votes,
+    };
+  }
+  return ld;
+}
+
 export const Route = createFileRoute("/movie/$id")({
-  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
+  loader: async ({ params }) => {
+    const res = await getPublicMovie({ data: { id: params.id } });
+    if (res.status === "redirect") {
+      // Consolidate legacy per-row URLs onto the one canonical public URL.
+      throw redirect({ to: "/movie/$id", params: { id: res.imdbId }, code: 301 });
+    }
+    return res.status === "found" ? res.movie : null;
+  },
+  head: ({ loaderData }) => {
+    const movie = loaderData as PublicMovie | null | undefined;
+    if (!movie) {
+      return {
+        meta: [
+          { title: "Movie not found | Reel Movie" },
+          { name: "robots", content: "noindex" },
+        ],
+      };
+    }
+
+    const canonical = `${SITE_URL}/movie/${movie.imdb_id}`;
+    const title = movieTitle(movie);
+    const description = movieDescription(movie);
+    const ogType = movie.media_type === "series" ? "video.tv_show" : "video.movie";
+    const cardType = movie.poster_url ? "summary_large_image" : "summary";
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:site_name", content: "Reel Movie" },
+        { property: "og:type", content: ogType },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: canonical },
+        ...(movie.poster_url ? [{ property: "og:image", content: movie.poster_url }] : []),
+        { name: "twitter:card", content: cardType },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        ...(movie.poster_url ? [{ name: "twitter:image", content: movie.poster_url }] : []),
+      ],
+      links: [{ rel: "canonical", href: canonical }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(buildJsonLd(movie)) },
+      ],
+    };
+  },
   component: MovieDetail,
 });
 
 function MovieDetail() {
+  const cached = Route.useLoaderData() as PublicMovie | null;
   const { user } = useAuth();
-  const { id } = Route.useParams();
   const navigate = useNavigate();
-  const [movie, setMovie] = useState<Movie | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [personal, setPersonal] = useState<Movie | null>(null);
   const [editing, setEditing] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
 
-  async function load() {
-    const { data, error } = await supabase.from("movies").select("*").eq("id", id).maybeSingle();
-    if (error) toast.error(error.message);
-    setMovie(data as Movie | null);
-    setLoading(false);
-  }
+  const imdbId = cached?.imdb_id ?? null;
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
-
-  const isOwner = !!user && !!movie && movie.user_id === user.id;
-
-  async function toggleFavorite() {
-    if (!movie) return;
-    if (!isOwner) return setGateOpen(true);
-    const { error } = await supabase
+  // The page itself is public (shared cache). Only the signed-in owner's own
+  // list entry — rating, notes, favorite, status — is loaded separately.
+  const loadPersonal = useCallback(async () => {
+    if (!user || !imdbId) {
+      setPersonal(null);
+      return;
+    }
+    const { data } = await supabase
       .from("movies")
-      .update({ is_favorite: !movie.is_favorite })
-      .eq("id", movie.id);
-    if (error) return toast.error(error.message);
-    load();
-  }
+      .select("*")
+      .eq("imdb_id", imdbId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setPersonal((data as Movie | null) ?? null);
+  }, [user, imdbId]);
 
-  async function remove() {
-    if (!movie) return;
-    if (!confirm(`Delete "${movie.title}"?`)) return;
-    const { error } = await supabase.from("movies").delete().eq("id", movie.id);
-    if (error) return toast.error(error.message);
-    toast.success("Removed.");
-    navigate({ to: "/dashboard" });
-  }
+  useEffect(() => {
+    loadPersonal();
+  }, [loadPersonal]);
 
-  const backTo = user ? "/dashboard" : "/discover";
-
-  if (loading) {
-    return (
-      <div className="min-h-screen">
-        <AppHeader user={user} />
-        <p className="mx-auto max-w-6xl px-6 py-20 text-center text-muted-foreground">Loading…</p>
-      </div>
-    );
-  }
-  if (!movie) {
+  if (!cached) {
+    const backTo = user ? "/dashboard" : "/discover";
     return (
       <div className="min-h-screen">
         <AppHeader user={user} />
@@ -82,7 +179,30 @@ function MovieDetail() {
     );
   }
 
-  const genres = movie.genres && movie.genres.length ? movie.genres : [movie.genre];
+  const movie = cached;
+  const isOwner = !!user && !!personal && personal.user_id === user.id;
+  const genres = movie.genres.length ? movie.genres : [];
+
+  async function toggleFavorite() {
+    if (!personal || !isOwner) return setGateOpen(true);
+    const { error } = await supabase
+      .from("movies")
+      .update({ is_favorite: !personal.is_favorite })
+      .eq("id", personal.id);
+    if (error) return toast.error(error.message);
+    loadPersonal();
+  }
+
+  async function remove() {
+    if (!personal || !isOwner) return;
+    if (!confirm(`Delete "${movie.title}"?`)) return;
+    const { error } = await supabase.from("movies").delete().eq("id", personal.id);
+    if (error) return toast.error(error.message);
+    toast.success("Removed.");
+    navigate({ to: "/dashboard" });
+  }
+
+  const backTo = user ? "/dashboard" : "/discover";
 
   return (
     <div className="min-h-screen">
@@ -126,35 +246,37 @@ function MovieDetail() {
               )}
             </div>
 
-            <div className="mt-5 flex items-center gap-3">
-              {movie.status === "watched" && movie.rating_score != null ? (
-                <div className="font-display text-3xl text-primary leading-none">
-                  {movie.rating_score}
-                  <span className="text-muted-foreground text-lg">/{movie.rating_max}</span>
-                </div>
-              ) : (
-                <Badge variant="outline" className="font-normal">
-                  {movie.status === "watchlist" ? "In watchlist" : "Watched"}
-                </Badge>
-              )}
-              <button
-                onClick={toggleFavorite}
-                aria-label={movie.is_favorite ? "Remove from favorites" : "Add to favorites"}
-                className="text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Heart className={`h-5 w-5 ${movie.is_favorite ? "fill-primary text-primary" : ""}`} />
-              </button>
-              {isOwner && (
-                <div className="ml-auto flex items-center gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-                    <Pencil className="h-3.5 w-3.5" /> Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={remove} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              )}
-            </div>
+            {personal && (
+              <div className="mt-5 flex items-center gap-3">
+                {personal.status === "watched" && personal.rating_score != null ? (
+                  <div className="font-display text-3xl text-primary leading-none">
+                    {personal.rating_score}
+                    <span className="text-muted-foreground text-lg">/{personal.rating_max}</span>
+                  </div>
+                ) : (
+                  <Badge variant="outline" className="font-normal">
+                    {personal.status === "watchlist" ? "In watchlist" : "Watched"}
+                  </Badge>
+                )}
+                <button
+                  onClick={toggleFavorite}
+                  aria-label={personal.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Heart className={`h-5 w-5 ${personal.is_favorite ? "fill-primary text-primary" : ""}`} />
+                </button>
+                {isOwner && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                      <Pencil className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={remove} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {movie.overview && (
               <section className="mt-6">
@@ -180,29 +302,29 @@ function MovieDetail() {
               </section>
             )}
 
-            {movie.notes && (
+            {personal?.notes && (
               <section className="mt-6 rounded-md border border-border bg-card/50 p-4">
                 <h3 className="text-xs uppercase tracking-wide text-muted-foreground">
                   {isOwner ? "Your notes" : "Notes"}
                 </h3>
-                <p className="mt-2 italic text-foreground/90">"{movie.notes}"</p>
+                <p className="mt-2 italic text-foreground/90">"{personal.notes}"</p>
               </section>
             )}
           </div>
         </div>
       </main>
 
-      {isOwner && (
+      {isOwner && personal && (
         <Dialog open={editing} onOpenChange={setEditing}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Edit movie</DialogTitle>
             </DialogHeader>
             <MovieForm
-              defaultStatus={movie.status}
+              defaultStatus={personal.status}
               userId={user!.id}
-              movie={movie}
-              onSaved={() => { setEditing(false); load(); }}
+              movie={personal}
+              onSaved={() => { setEditing(false); loadPersonal(); }}
               onCancel={() => setEditing(false)}
             />
           </DialogContent>

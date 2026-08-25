@@ -80,7 +80,7 @@ export function MovieCard({ movie, onChanged, readOnly = false, onRequireAuth }:
   return (
     <Link
       to="/movie/$id"
-      params={{ id: movie.id }}
+      params={{ id: movie.imdb_id ?? movie.id }}
       className="group relative block overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/40"
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-secondary">

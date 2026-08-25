@@ -1,8 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 const OMDB = "https://www.omdbapi.com/";
+const IMDB_ID_RE = /^tt\d+$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type OmdbSearchResult = {
   imdbID: string;
@@ -25,6 +28,17 @@ export type MovieMeta = {
   imdb_rating: number | null;
   media_type: "movie" | "series";
 };
+
+/** Public movie payload served from the shared cache for /movie/{imdbId} pages. */
+export type PublicMovie = MovieMeta & {
+  updated_at: string | null;
+  raw: Json | null;
+};
+
+export type PublicMovieLookup =
+  | { status: "found"; movie: PublicMovie }
+  | { status: "redirect"; imdbId: string }
+  | { status: "not_found" };
 
 function normalizeType(t?: string | null): "movie" | "series" {
   return t === "series" ? "series" : "movie";
@@ -166,6 +180,88 @@ export const searchMovies = createServerFn({ method: "POST" })
         return (parseYear(b.Year) ?? 0) - (parseYear(a.Year) ?? 0);
       })
       .slice(0, MAX_OMDB_RESULTS);
+  });
+
+/**
+ * Public (no auth required) lookup for the canonical /movie/{imdbId} page.
+ * Reads only the shared movie cache — never hits OMDb — so SEO rendering
+ * reuses cached data. Legacy /movie/{movieRowUuid} URLs resolve to the
+ * movie's imdb_id and report a redirect so there is exactly one public URL
+ * per title no matter how many users added it.
+ */
+export const getPublicMovie = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string().min(2).max(64) }))
+  .handler(async ({ data }): Promise<PublicMovieLookup> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (IMDB_ID_RE.test(data.id)) {
+      const { data: row } = await supabaseAdmin
+        .from("movie_cache")
+        .select("*")
+        .eq("imdb_id", data.id)
+        .maybeSingle();
+      if (!row) return { status: "not_found" };
+      return {
+        status: "found",
+        movie: {
+          imdb_id: row.imdb_id,
+          title: row.title,
+          release_year: row.release_year,
+          runtime: row.runtime,
+          genres: row.genres ?? [],
+          overview: row.overview,
+          director: row.director,
+          actors: row.actors,
+          poster_url: row.poster_url,
+          imdb_rating: row.imdb_rating,
+          media_type: normalizeType(row.media_type),
+          updated_at: row.updated_at,
+          raw: row.raw,
+        },
+      };
+    }
+
+    if (UUID_RE.test(data.id)) {
+      // Legacy URL: a personal movies row id. Find its imdb_id and consolidate.
+      const { data: entry } = await supabaseAdmin
+        .from("movies")
+        .select(
+          "imdb_id, title, release_year, runtime, genres, overview, director, actors, poster_url, imdb_rating, media_type",
+        )
+        .eq("id", data.id)
+        .maybeSingle();
+
+      if (entry?.imdb_id) {
+        // Keep the shared cache as the single source of truth: backfill it
+        // if this title was saved to a personal list before it was cached.
+        const { data: cached } = await supabaseAdmin
+          .from("movie_cache")
+          .select("imdb_id")
+          .eq("imdb_id", entry.imdb_id)
+          .maybeSingle();
+        if (!cached) {
+          await supabaseAdmin.from("movie_cache").upsert(
+            {
+              imdb_id: entry.imdb_id,
+              title: entry.title,
+              release_year: entry.release_year,
+              runtime: entry.runtime,
+              genres: entry.genres,
+              overview: entry.overview,
+              director: entry.director,
+              actors: entry.actors,
+              poster_url: entry.poster_url,
+              imdb_rating: entry.imdb_rating,
+              media_type: entry.media_type,
+            },
+            { onConflict: "imdb_id", ignoreDuplicates: true },
+          );
+        }
+        return { status: "redirect", imdbId: entry.imdb_id };
+      }
+    }
+
+    return { status: "not_found" };
   });
 
 export const getMovieMeta = createServerFn({ method: "POST" })

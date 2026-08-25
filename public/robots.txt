@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
+Allow: /movie/
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /calendar
+Disallow: /stats
+Disallow: /auth
+Disallow: /reset-password
 
-Sitemap: https://www.reel-movie.lovable.app/sitemap.xml
+Sitemap: https://reel-movie.lovable.app/sitemap.xml
