@@ -26,6 +26,12 @@ export const Route = createFileRoute("/discover")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [
+          {
+            rel: "canonical",
+            href: "https://reel-movie.lovable.app/discover",
+          },
+        ],
   }),
   component: DiscoverPage,
 });
