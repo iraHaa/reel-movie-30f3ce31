@@ -279,6 +279,9 @@ export const getPublicMovie = createServerFn({ method: "POST" })
  *   1. Number of shared genres (strict matching beats a single loose overlap).
  *   2. Shared director and shared cast members.
  *   3. IMDb rating only as a mild tie-breaker — never the primary signal.
+ * To keep the row from being deterministic, the top-scoring ~25 candidates
+ * are shuffled before picking 5, so each page view shows a varied but still
+ * highly relevant selection.
  * If fewer than 5 scored matches exist, the remaining slots are filled with
  * random genre matches from the candidate pool, and only as a last resort
  * with random non-matching cache entries, so the row always shows 5 cards
@@ -377,11 +380,16 @@ export const getSimilarMovies = createServerFn({ method: "POST" })
       candidates = rows ?? [];
     }
 
-    // 2. Rank by relevance score.
+    // 2. Rank by relevance score, then randomize within the top tier:
+    //    shuffle the best-scored SHORTLIST_SIZE candidates and take the
+    //    first few, so each page view gets a varied but still highly
+    //    relevant selection instead of the same deterministic top N.
+    const SHORTLIST_SIZE = 25;
     const ranked = candidates
       .map((row) => ({ row, score: scoreRow(row) }))
       .sort((a, b) => b.score - a.score);
-    const matches = ranked.slice(0, data.limit).map(({ row }) => toCard(row));
+    const shortlist = shuffle(ranked.slice(0, SHORTLIST_SIZE).map(({ row }) => row));
+    const matches = shortlist.slice(0, data.limit).map(toCard);
     if (matches.length >= data.limit) return matches;
 
     // 3. Fallback fill, still genre-constrained: random picks from the
@@ -389,10 +397,7 @@ export const getSimilarMovies = createServerFn({ method: "POST" })
     const picked = new Set(matches.map((m) => m.imdb_id));
     const result = [...matches];
     const leftovers = shuffle(
-      ranked
-        .slice(data.limit)
-        .map(({ row }) => row)
-        .filter((row) => !picked.has(row.imdb_id)),
+      ranked.map(({ row }) => row).filter((row) => !picked.has(row.imdb_id)),
     );
     for (const row of leftovers) {
       if (result.length >= data.limit) break;
