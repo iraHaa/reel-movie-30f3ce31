@@ -35,6 +35,15 @@ export type PublicMovie = MovieMeta & {
   raw: Json | null;
 };
 
+/** Minimal card data for the "You Might Also Like" section on movie pages. */
+export type SimilarMovie = {
+  imdb_id: string;
+  title: string;
+  release_year: number | null;
+  poster_url: string | null;
+  imdb_rating: number | null;
+};
+
 export type PublicMovieLookup =
   | { status: "found"; movie: PublicMovie }
   | { status: "redirect"; imdbId: string }
@@ -262,6 +271,72 @@ export const getPublicMovie = createServerFn({ method: "POST" })
     }
 
     return { status: "not_found" };
+  });
+
+/**
+ * "You Might Also Like" picks for a movie page, straight from the shared
+ * movie cache — never hits OMDb. Priority order:
+ *   1. Titles sharing at least one genre with the current movie, best
+ *      rated first (no popularity column exists, so imdb_rating ranks).
+ *   2. If fewer than 5 genre matches exist, fill the remaining slots with
+ *      random other cache entries so the row always shows 5 cards
+ *      (or whatever the cache holds if it has fewer than 6 titles total).
+ * The current movie is always excluded.
+ */
+export const getSimilarMovies = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      imdbId: z.string().regex(IMDB_ID_RE),
+      genres: z.array(z.string().min(1).max(40)).max(10),
+      limit: z.number().int().min(1).max(20).default(5),
+    }),
+  )
+  .handler(async ({ data }): Promise<SimilarMovie[]> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const CARD_COLUMNS = "imdb_id, title, release_year, poster_url, imdb_rating";
+    const toCard = (row: {
+      imdb_id: string;
+      title: string;
+      release_year: number | null;
+      poster_url: string | null;
+      imdb_rating: number | null;
+    }): SimilarMovie => ({
+      imdb_id: row.imdb_id,
+      title: row.title,
+      release_year: row.release_year,
+      poster_url: row.poster_url,
+      imdb_rating: row.imdb_rating,
+    });
+
+    // 1. Primary match: shared genres, best rated first (nulls last).
+    let matches: SimilarMovie[] = [];
+    if (data.genres.length > 0) {
+      const { data: rows } = await supabaseAdmin
+        .from("movie_cache")
+        .select(CARD_COLUMNS)
+        .overlaps("genres", data.genres)
+        .neq("imdb_id", data.imdbId)
+        .order("imdb_rating", { ascending: false, nullsFirst: false })
+        .limit(data.limit);
+      matches = (rows ?? []).map(toCard);
+    }
+    if (matches.length >= data.limit) return matches;
+
+    // 2. Fallback fill: other active cache entries in random order.
+    const exclude = [data.imdbId, ...matches.map((m) => m.imdb_id)];
+    const { data: candidates } = await supabaseAdmin
+      .from("movie_cache")
+      .select(CARD_COLUMNS)
+      .not("imdb_id", "in", `(${exclude.join(",")})`)
+      .limit(200);
+
+    const pool = candidates ?? [];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    return [...matches, ...pool.slice(0, data.limit - matches.length).map(toCard)];
   });
 
 export const getMovieMeta = createServerFn({ method: "POST" })

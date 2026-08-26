@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Heart, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Film, Heart, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,9 +10,19 @@ import { AppHeader } from "@/components/AppHeader";
 import { AuthGateDialog } from "@/components/AuthGateDialog";
 import { MovieForm } from "@/components/MovieForm";
 import { useAuth } from "@/hooks/useAuth";
-import { getPublicMovie, type PublicMovie } from "@/lib/movies.functions";
+import {
+  getPublicMovie,
+  getSimilarMovies,
+  type PublicMovie,
+  type SimilarMovie,
+} from "@/lib/movies.functions";
 import type { Movie } from "@/components/MovieCard";
 import { toast } from "sonner";
+
+type MovieLoaderData = {
+  movie: PublicMovie | null;
+  similar: SimilarMovie[];
+};
 
 const SITE_URL = "https://reel-movie.lovable.app";
 
@@ -85,16 +95,29 @@ function buildJsonLd(movie: PublicMovie) {
 }
 
 export const Route = createFileRoute("/movie/$id")({
-  loader: async ({ params }) => {
+  loader: async ({ params }): Promise<MovieLoaderData> => {
     const res = await getPublicMovie({ data: { id: params.id } });
     if (res.status === "redirect") {
       // Consolidate legacy per-row URLs onto the one canonical public URL.
       throw redirect({ to: "/movie/$id", params: { id: res.imdbId }, code: 301 });
     }
-    return res.status === "found" ? res.movie : null;
+    if (res.status !== "found") return { movie: null, similar: [] };
+
+    // Recommendations are fetched server-side so their links are part of the
+    // SSR'd HTML and directly crawlable. Never let a recommendation failure
+    // break the movie page itself.
+    let similar: SimilarMovie[] = [];
+    try {
+      similar = await getSimilarMovies({
+        data: { imdbId: res.movie.imdb_id, genres: res.movie.genres, limit: 5 },
+      });
+    } catch {
+      // keep the page rendering without the section
+    }
+    return { movie: res.movie, similar };
   },
   head: ({ loaderData }) => {
-    const movie = loaderData as PublicMovie | null | undefined;
+    const movie = (loaderData as MovieLoaderData | null | undefined)?.movie ?? null;
     if (!movie) {
       return {
         meta: [
@@ -134,8 +157,42 @@ export const Route = createFileRoute("/movie/$id")({
   component: MovieDetail,
 });
 
+function SimilarMovieCard({ movie }: { movie: SimilarMovie }) {
+  // Plain anchor on purpose: keeps the link a standard crawlable <a href>
+  // for search-engine bots (Googlebot, Ahrefs) instead of an SPA navigation.
+  return (
+    <a
+      href={`/movie/${movie.imdb_id}`}
+      className="group block overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/40"
+    >
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-secondary">
+        {movie.poster_url ? (
+          <img
+            src={movie.poster_url}
+            alt={`${movie.title} poster`}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <Film className="h-8 w-8" />
+          </div>
+        )}
+      </div>
+      <div className="p-3">
+        <h3 className="font-display text-base leading-tight text-foreground line-clamp-2">
+          {movie.title}
+          {movie.release_year && (
+            <span className="text-muted-foreground font-sans ml-1">({movie.release_year})</span>
+          )}
+        </h3>
+      </div>
+    </a>
+  );
+}
+
 function MovieDetail() {
-  const cached = Route.useLoaderData() as PublicMovie | null;
+  const { movie: cached, similar } = Route.useLoaderData();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [personal, setPersonal] = useState<Movie | null>(null);
@@ -312,6 +369,17 @@ function MovieDetail() {
             )}
           </div>
         </div>
+
+        {similar.length > 0 && (
+          <section className="mt-14" aria-label="You might also like">
+            <h2 className="font-display text-2xl mb-4">You Might Also Like</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+              {similar.map((m) => (
+                <SimilarMovieCard key={m.imdb_id} movie={m} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {isOwner && personal && (
