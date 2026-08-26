@@ -35,8 +35,7 @@ function truncate(text: string, max = 160): string {
 
 function movieTitle(movie: PublicMovie): string {
   const year = movie.release_year ? ` (${movie.release_year})` : "";
-  const details =
-    movie.imdb_rating != null ? "IMDb Rating, Cast & Details" : "Cast & Details";
+  const details = movie.imdb_rating != null ? "IMDb Rating, Cast & Details" : "Cast & Details";
   return `${movie.title}${year} – ${details} | Reel Movie`;
 }
 
@@ -109,7 +108,13 @@ export const Route = createFileRoute("/movie/$id")({
     let similar: SimilarMovie[] = [];
     try {
       similar = await getSimilarMovies({
-        data: { imdbId: res.movie.imdb_id, genres: res.movie.genres, limit: 5 },
+        data: {
+          imdbId: res.movie.imdb_id,
+          genres: res.movie.genres,
+          director: res.movie.director,
+          actors: res.movie.actors,
+          limit: 5,
+        },
       });
     } catch {
       // keep the page rendering without the section
@@ -120,10 +125,7 @@ export const Route = createFileRoute("/movie/$id")({
     const movie = (loaderData as MovieLoaderData | null | undefined)?.movie ?? null;
     if (!movie) {
       return {
-        meta: [
-          { title: "Movie not found | Reel Movie" },
-          { name: "robots", content: "noindex" },
-        ],
+        meta: [{ title: "Movie not found | Reel Movie" }, { name: "robots", content: "noindex" }],
       };
     }
 
@@ -149,9 +151,7 @@ export const Route = createFileRoute("/movie/$id")({
         ...(movie.poster_url ? [{ name: "twitter:image", content: movie.poster_url }] : []),
       ],
       links: [{ rel: "canonical", href: canonical }],
-      scripts: [
-        { type: "application/ld+json", children: JSON.stringify(buildJsonLd(movie)) },
-      ],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(buildJsonLd(movie)) }],
     };
   },
   component: MovieDetail,
@@ -229,7 +229,9 @@ function MovieDetail() {
         <div className="mx-auto max-w-6xl px-6 py-20 text-center">
           <p className="text-muted-foreground">Movie not found.</p>
           <Button asChild variant="ghost" className="mt-4">
-            <Link to={backTo}><ArrowLeft className="h-4 w-4" /> Back</Link>
+            <Link to={backTo}>
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Link>
           </Button>
         </div>
       </div>
@@ -269,13 +271,19 @@ function MovieDetail() {
 
       <main className="mx-auto max-w-6xl px-6 pt-8 pb-16">
         <Button asChild variant="ghost" size="sm" className="mb-6">
-          <Link to={backTo}><ArrowLeft className="h-4 w-4" /> Back</Link>
+          <Link to={backTo}>
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Link>
         </Button>
 
         <div className="grid gap-8 md:grid-cols-[240px_1fr]">
           <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg border border-border bg-secondary shadow-xl">
             {movie.poster_url ? (
-              <img src={movie.poster_url} alt={`${movie.title} poster`} className="h-full w-full object-cover" />
+              <img
+                src={movie.poster_url}
+                alt={`${movie.title} poster`}
+                className="h-full w-full object-cover"
+              />
             ) : null}
           </div>
 
@@ -292,7 +300,9 @@ function MovieDetail() {
               {movie.runtime && genres.length > 0 && <span aria-hidden>·</span>}
               <div className="flex flex-wrap gap-1.5">
                 {genres.map((g) => (
-                  <Badge key={g} variant="secondary" className="font-normal">{g}</Badge>
+                  <Badge key={g} variant="secondary" className="font-normal">
+                    {g}
+                  </Badge>
                 ))}
               </div>
               {movie.imdb_rating != null && (
@@ -320,14 +330,21 @@ function MovieDetail() {
                   aria-label={personal.is_favorite ? "Remove from favorites" : "Add to favorites"}
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Heart className={`h-5 w-5 ${personal.is_favorite ? "fill-primary text-primary" : ""}`} />
+                  <Heart
+                    className={`h-5 w-5 ${personal.is_favorite ? "fill-primary text-primary" : ""}`}
+                  />
                 </button>
                 {isOwner && (
                   <div className="ml-auto flex items-center gap-2">
                     <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
                       <Pencil className="h-3.5 w-3.5" /> Edit
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={remove} className="text-muted-foreground hover:text-destructive">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={remove}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -346,7 +363,9 @@ function MovieDetail() {
               <section className="mt-6 grid gap-4 sm:grid-cols-2">
                 {movie.director && (
                   <div>
-                    <h3 className="text-xs uppercase tracking-wide text-muted-foreground">Director</h3>
+                    <h3 className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Director
+                    </h3>
                     <p className="mt-1">{movie.director}</p>
                   </div>
                 )}
@@ -392,7 +411,10 @@ function MovieDetail() {
               defaultStatus={personal.status}
               userId={user!.id}
               movie={personal}
-              onSaved={() => { setEditing(false); loadPersonal(); }}
+              onSaved={() => {
+                setEditing(false);
+                loadPersonal();
+              }}
               onCancel={() => setEditing(false)}
             />
           </DialogContent>

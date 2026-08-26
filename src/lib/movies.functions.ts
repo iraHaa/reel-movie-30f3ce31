@@ -102,7 +102,7 @@ export const searchMovies = createServerFn({ method: "POST" })
     const maxPages = strongCachedHits >= 8 ? 1 : 5;
 
     const MAX_OMDB_RESULTS = 50;
-    let omdbResults: OmdbSearchResult[] = [];
+    const omdbResults: OmdbSearchResult[] = [];
     {
       const key = process.env.OMDB_API_KEY;
       if (key) {
@@ -145,7 +145,6 @@ export const searchMovies = createServerFn({ method: "POST" })
         }
       }
     }
-
 
     // 3. Insert new OMDb results into shared cache (full metadata is filled by getMovieMeta on demand)
     const cachedIds = new Set(cachedResults.map((r) => r.imdbID));
@@ -275,25 +274,31 @@ export const getPublicMovie = createServerFn({ method: "POST" })
 
 /**
  * "You Might Also Like" picks for a movie page, straight from the shared
- * movie cache — never hits OMDb. Priority order:
- *   1. Titles sharing at least one genre with the current movie, best
- *      rated first (no popularity column exists, so imdb_rating ranks).
- *   2. If fewer than 5 genre matches exist, fill the remaining slots with
- *      random other cache entries so the row always shows 5 cards
- *      (or whatever the cache holds if it has fewer than 6 titles total).
- * The current movie is always excluded.
+ * movie cache — never hits OMDb. Candidates must share at least one genre
+ * with the current movie and are then ranked by a relevance score:
+ *   1. Number of shared genres (strict matching beats a single loose overlap).
+ *   2. Shared director and shared cast members.
+ *   3. IMDb rating only as a mild tie-breaker — never the primary signal.
+ * If fewer than 5 scored matches exist, the remaining slots are filled with
+ * random genre matches from the candidate pool, and only as a last resort
+ * with random non-matching cache entries, so the row always shows 5 cards
+ * (or whatever the cache holds if it has fewer than 6 titles total).
+ * The current movie is always excluded from every pool.
  */
 export const getSimilarMovies = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       imdbId: z.string().regex(IMDB_ID_RE),
       genres: z.array(z.string().min(1).max(40)).max(10),
+      director: z.string().max(200).nullable().optional(),
+      actors: z.string().max(600).nullable().optional(),
       limit: z.number().int().min(1).max(20).default(5),
     }),
   )
   .handler(async ({ data }): Promise<SimilarMovie[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const CARD_COLUMNS = "imdb_id, title, release_year, poster_url, imdb_rating";
+    const CANDIDATE_COLUMNS =
+      "imdb_id, title, release_year, poster_url, imdb_rating, genres, director, actors";
     const toCard = (row: {
       imdb_id: string;
       title: string;
@@ -307,36 +312,105 @@ export const getSimilarMovies = createServerFn({ method: "POST" })
       poster_url: row.poster_url,
       imdb_rating: row.imdb_rating,
     });
+    const splitNames = (value: string | null | undefined): string[] =>
+      (value ?? "")
+        .split(",")
+        .map((n) => n.trim().toLowerCase())
+        .filter((n) => n && n !== "n/a");
+    const shuffle = <T>(arr: T[]): T[] => {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
 
-    // 1. Primary match: shared genres, best rated first (nulls last).
-    let matches: SimilarMovie[] = [];
-    if (data.genres.length > 0) {
+    const targetGenres = new Set(data.genres.map((g) => g.toLowerCase()));
+    const targetDirector = (data.director ?? "").trim().toLowerCase() || null;
+    const targetActors = new Set(splitNames(data.actors));
+
+    const scoreRow = (row: {
+      genres: string[] | null;
+      director: string | null;
+      actors: string | null;
+      imdb_rating: number | null;
+    }): number => {
+      let score = 0;
+      // Shared genres weigh most — multi-genre matches rank strictly above
+      // single-genre overlaps.
+      for (const g of row.genres ?? []) {
+        if (targetGenres.has(g.toLowerCase())) score += 3;
+      }
+      // Same director is a very strong signal.
+      const directors = splitNames(row.director);
+      if (targetDirector && directors.includes(targetDirector)) score += 4;
+      // Shared cast members, capped so a single cameo can't dominate.
+      let sharedActors = 0;
+      for (const a of splitNames(row.actors)) {
+        if (targetActors.has(a) && ++sharedActors >= 3) break;
+      }
+      score += sharedActors;
+      // Mild quality tie-breaker only (0..1) — never the primary signal.
+      score += (row.imdb_rating ?? 0) / 10;
+      return score;
+    };
+
+    // 1. Candidate pool: cache titles sharing at least one genre, current
+    //    movie excluded at the query level.
+    let candidates: {
+      imdb_id: string;
+      title: string;
+      release_year: number | null;
+      poster_url: string | null;
+      imdb_rating: number | null;
+      genres: string[] | null;
+      director: string | null;
+      actors: string | null;
+    }[] = [];
+    if (targetGenres.size > 0) {
       const { data: rows } = await supabaseAdmin
         .from("movie_cache")
-        .select(CARD_COLUMNS)
+        .select(CANDIDATE_COLUMNS)
         .overlaps("genres", data.genres)
         .neq("imdb_id", data.imdbId)
-        .order("imdb_rating", { ascending: false, nullsFirst: false })
-        .limit(data.limit);
-      matches = (rows ?? []).map(toCard);
+        .limit(300);
+      candidates = rows ?? [];
     }
+
+    // 2. Rank by relevance score.
+    const ranked = candidates
+      .map((row) => ({ row, score: scoreRow(row) }))
+      .sort((a, b) => b.score - a.score);
+    const matches = ranked.slice(0, data.limit).map(({ row }) => toCard(row));
     if (matches.length >= data.limit) return matches;
 
-    // 2. Fallback fill: other active cache entries in random order.
-    const exclude = [data.imdbId, ...matches.map((m) => m.imdb_id)];
-    const { data: candidates } = await supabaseAdmin
+    // 3. Fallback fill, still genre-constrained: random picks from the
+    //    remaining genre matches rather than the global top-rated list.
+    const picked = new Set(matches.map((m) => m.imdb_id));
+    const result = [...matches];
+    const leftovers = shuffle(
+      ranked
+        .slice(data.limit)
+        .map(({ row }) => row)
+        .filter((row) => !picked.has(row.imdb_id)),
+    );
+    for (const row of leftovers) {
+      if (result.length >= data.limit) break;
+      result.push(toCard(row));
+      picked.add(row.imdb_id);
+    }
+    if (result.length >= data.limit) return result;
+
+    // 4. Last resort (tiny cache / no genres): random non-matching entries.
+    const exclude = [data.imdbId, ...result.map((m) => m.imdb_id)];
+    const { data: anyRows } = await supabaseAdmin
       .from("movie_cache")
-      .select(CARD_COLUMNS)
+      .select("imdb_id, title, release_year, poster_url, imdb_rating")
       .not("imdb_id", "in", `(${exclude.join(",")})`)
       .limit(200);
 
-    const pool = candidates ?? [];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-
-    return [...matches, ...pool.slice(0, data.limit - matches.length).map(toCard)];
+    const pool = shuffle(anyRows ?? []);
+    return [...result, ...pool.slice(0, data.limit - result.length).map(toCard)];
   });
 
 export const getMovieMeta = createServerFn({ method: "POST" })
@@ -356,7 +430,8 @@ export const getMovieMeta = createServerFn({ method: "POST" })
     // is saved with empty genres/overview/etc. and falls back to "Drama".
     const isComplete = (row: typeof cached): boolean =>
       !!row &&
-      Array.isArray(row.genres) && row.genres.length > 0 &&
+      Array.isArray(row.genres) &&
+      row.genres.length > 0 &&
       (row.overview != null || row.director != null || row.actors != null || row.runtime != null);
 
     if (cached && isComplete(cached)) {
@@ -375,12 +450,9 @@ export const getMovieMeta = createServerFn({ method: "POST" })
       };
     }
 
-
     const key = process.env.OMDB_API_KEY;
     if (!key) throw new Error("OMDB_API_KEY not configured");
-    const res = await fetch(
-      `${OMDB}?apikey=${key}&i=${encodeURIComponent(data.imdbId)}&plot=full`,
-    );
+    const res = await fetch(`${OMDB}?apikey=${key}&i=${encodeURIComponent(data.imdbId)}&plot=full`);
     if (!res.ok) throw new Error("OMDb request failed");
     const json = (await res.json()) as Record<string, string>;
     if (json.Response === "False") throw new Error(json.Error || "Title not found");
@@ -390,7 +462,10 @@ export const getMovieMeta = createServerFn({ method: "POST" })
       title: json.Title ?? "",
       release_year: parseYear(json.Year),
       runtime: parseRuntime(json.Runtime),
-      genres: (json.Genre ?? "").split(",").map((g) => g.trim()).filter(Boolean),
+      genres: (json.Genre ?? "")
+        .split(",")
+        .map((g) => g.trim())
+        .filter(Boolean),
       overview: json.Plot && json.Plot !== "N/A" ? json.Plot : null,
       director: json.Director && json.Director !== "N/A" ? json.Director : null,
       actors: json.Actors && json.Actors !== "N/A" ? json.Actors : null,
