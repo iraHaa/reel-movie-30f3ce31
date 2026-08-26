@@ -19,6 +19,7 @@ import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedStatsRouteImport } from './routes/_authenticated/stats'
+import { Route as ApiSeedRouteImport } from './routes/api.seed'
 import { Route as MovieIdRouteImport } from './routes/movie.$id'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
 
@@ -71,6 +72,11 @@ const AuthenticatedStatsRoute = AuthenticatedStatsRouteImport.update({
   path: '/stats',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiSeedRoute = ApiSeedRouteImport.update({
+  id: '/api/seed',
+  path: '/api/seed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MovieIdRoute = MovieIdRouteImport.update({
   id: '/movie/$id',
   path: '/movie/$id',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/stats': typeof AuthenticatedStatsRoute
+  '/api/seed': typeof ApiSeedRoute
   '/movie/$id': typeof MovieIdRoute
   '/u/$username': typeof UUsernameRoute
 }
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/stats': typeof AuthenticatedStatsRoute
+  '/api/seed': typeof ApiSeedRoute
   '/movie/$id': typeof MovieIdRoute
   '/u/$username': typeof UUsernameRoute
 }
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/stats': typeof AuthenticatedStatsRoute
+  '/api/seed': typeof ApiSeedRoute
   '/movie/$id': typeof MovieIdRoute
   '/u/$username': typeof UUsernameRoute
 }
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/stats'
+    | '/api/seed'
     | '/movie/$id'
     | '/u/$username'
   fileRoutesByTo: FileRoutesByTo
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/stats'
+    | '/api/seed'
     | '/movie/$id'
     | '/u/$username'
   id:
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/profile'
     | '/_authenticated/stats'
+    | '/api/seed'
     | '/movie/$id'
     | '/u/$username'
   fileRoutesById: FileRoutesById
@@ -173,6 +185,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiSeedRoute: typeof ApiSeedRoute
   MovieIdRoute: typeof MovieIdRoute
   UUsernameRoute: typeof UUsernameRoute
 }
@@ -249,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStatsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/seed': {
+      id: '/api/seed'
+      path: '/api/seed'
+      fullPath: '/api/seed'
+      preLoaderRoute: typeof ApiSeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/movie/$id': {
       id: '/movie/$id'
       path: '/movie/$id'
@@ -290,6 +310,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiSeedRoute: ApiSeedRoute,
   MovieIdRoute: MovieIdRoute,
   UUsernameRoute: UUsernameRoute,
 }
