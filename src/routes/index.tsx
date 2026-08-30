@@ -191,7 +191,7 @@ function Landing() {
 
       <footer className="border-t border-border/60">
         <div className="mx-auto max-w-6xl px-6 py-8 text-center text-xs text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Reel Movie — a free movie tracker &amp; watchlist app.</p>
+          <p>&copy; {new Date().getFullYear()} Reel Movie. Made in Ukraine. Movie data from OMDb API.</p>
         </div>
       </footer>
     </div>
