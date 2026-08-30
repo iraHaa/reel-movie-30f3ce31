@@ -111,11 +111,11 @@ function Landing() {
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-3 text-left">
             <Card title="Everything in one place" body="One movie tracking website for films and series — no spreadsheets, no scattered notes." />
-            <Card title="Free and unlimited" body="Unlike many film trackers, Reel Movie is completely free with no limits on your collection." />
+            <Card title="No payments, no limits" body="Reel Movie is a free movie tracker app with no limits on your collection." />
             <Card title="Ratings that fit you" body="Add your own rating in */* format — 8.5/10 or 4/5, whatever you prefer." />
-            <Card title="Movies and TV shows" body="A true movie and TV show tracker: log feature films, mini-series and long-running shows alike." />
+            <Card title="Movies and TV shows" body="A true movie and TV show tracker: log films, mini-series and long-running shows alike." />
             <Card title="Private or public" body="Keep your collection private, or open a public profile so friends can follow what you watch." />
-            <Card title="Insightful stats" body="See favorite genres, monthly activity and average ratings from your movies tracking history." />
+            <Card title="Insightful stats" body="See your favorite genres, monthly activity and average ratings from your movies tracking history." />
           </div>
         </section>
 
@@ -154,10 +154,10 @@ function Landing() {
             <h2 id="how" className="font-display text-3xl sm:text-4xl text-center">How It Works</h2>
           </div>
           <ol className="mt-10 grid gap-6 md:grid-cols-4 text-left">
-            <Step n={1} title="Create a free account" body="Sign up with your email in seconds — no payment details needed." />
-            <Step n={2} title="Search a title" body="Find any movie or series and we fill in poster, genre, year and cast." />
-            <Step n={3} title="Watched or watchlist" body="Save it as watched or queue it up for later viewing." />
-            <Step n={4} title="Rate and review your year" body="Add your rating, then explore stats, calendar and public profiles." />
+            <Step n={1} title="Create an account" body="Sign up with your email and confirm your address — no payment details needed." />
+            <Step n={2} title="Search a title" body="Find any movie or TV series and add it to your collection with one click." />
+            <Step n={3} title="Track your viewing" body="Mark titles as Watched or add them to your Watchlist. Drop a quick rating and personal note as you go." />
+            <Step n={4} title="Share and connect" body="Share your movie collection with friends and explore profiles of other fans." />
           </ol>
         </section>
 
@@ -205,11 +205,11 @@ const FAQ = [
   },
   {
     q: "Can I track TV series as well as movies?",
-    a: "Absolutely. Reel Movie works as a movie and TV show tracker, so series and films sit in the same library.",
+    a: "Absolutely. Reel Movie works as a movie and TV show tracker app, so you can add both series and films to your collection.",
   },
   {
     q: "Can I track movies I watch on Netflix?",
-    a: "Yes. You can track movies on Netflix, Prime Video, Disney+ or anywhere else — just add the title after you watch it.",
+    a: "Yes. You can track movies you watch on Netflix, Prime Video, Disney+ or anywhere else — just add the title to your library.",
   },
   {
     q: "How do ratings work?",
@@ -220,16 +220,16 @@ const FAQ = [
     a: "Your library is private by default. You can switch your profile to public if you want others to follow your watchlist.",
   },
   {
-    q: "How is this different from other film trackers?",
-    a: "Reel Movie combines a fast movie tracking website with genre filters, personal ratings, stats and social discovery in one free app.",
+    q: "How is this different from other online film trackers?",
+    a: "Reel Movie combines a convenient movie tracking website with genre filters, personal ratings, stats, and social discovery in one free app.",
   },
   {
     q: "Where does the movie information come from?",
-    a: "Posters, genres, cast, runtime and release years are fetched automatically from public movie databases when you add a title.",
+    a: "Posters, genres, cast, runtime, and release years are fetched automatically from OMDb — a public movie and TV series database.",
   },
   {
     q: "Do I need to install anything?",
-    a: "No. Reel Movie runs in your browser on desktop and mobile, so your TV series tracker is always with you.",
+    a: "No. Reel Movie runs well in both desktop and mobile browsers, so your movie and TV series tracker is always at your fingertips.",
   },
 ];
 
