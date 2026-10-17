@@ -34,13 +34,13 @@ export type MediaType = "movie" | "series";
 
 /** Reads the secret per-call (Cloudflare Workers binds env at request time). */
 export function tmdbToken(): string {
-  const token = process.env.TMDB_API_KEY;
-  if (!token) throw new Error("TMDB_API_KEY not configured");
+  const token = process.env['TMDB_API_KEY'];
+  if (!token) throw new Error("Movie search is not configured. Add TMDB_API_KEY in Lovable Secrets.");
   return token;
 }
 
 export function hasTmdbToken(): boolean {
-  return Boolean(process.env.TMDB_API_KEY);
+  return Boolean(process.env['TMDB_API_KEY']);
 }
 
 /** Builds an absolute image URL from a TMDB `*_path`, or null when absent. */
@@ -60,14 +60,27 @@ export async function tmdbFetch<T>(path: string, params: TmdbParams = {}): Promi
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
   }
-  const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${tmdbToken()}`,
-      accept: "application/json",
-    },
-  });
-  if (!res.ok) throw new Error(`TMDB ${path} failed: HTTP ${res.status}`);
-  return (await res.json()) as T;
+  const token = tmdbToken();
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}`, accept: "application/json" },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw new Error("Unable to reach TMDB. Please try again later.");
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new Error("TMDB credentials were rejected. Update TMDB_API_KEY in Lovable Secrets with an API Read Access Token.");
+  }
+  if (res.status === 404) throw new Error("Title not found in TMDB.");
+  if (res.status === 429) throw new Error("TMDB is busy. Please try again shortly.");
+  if (!res.ok) throw new Error("TMDB is temporarily unavailable. Please try again later.");
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new Error("TMDB returned an unreadable response. Please try again later.");
+  }
 }
 
 /** GET a TMDB endpoint but resolve to `null` instead of throwing (best-effort). */
@@ -163,8 +176,10 @@ export type TmdbFindResponse = {
  */
 export async function findTmdbByImdb(
   imdbId: string,
+  bestEffort = true,
 ): Promise<{ tmdbId: number; mediaType: MediaType } | null> {
-  const res = await tmdbFetchSafe<TmdbFindResponse>("/find/" + encodeURIComponent(imdbId), {
+  const request = bestEffort ? tmdbFetchSafe<TmdbFindResponse> : tmdbFetch<TmdbFindResponse>;
+  const res = await request("/find/" + encodeURIComponent(imdbId), {
     external_source: "imdb_id",
   });
   if (!res) return null;
@@ -182,9 +197,11 @@ export async function findTmdbByImdb(
 export async function fetchTmdbDetails(
   tmdbId: number,
   mediaType: MediaType,
+  bestEffort = true,
 ): Promise<TmdbTitleDetails | null> {
   const segment = mediaType === "series" ? "tv" : "movie";
-  return tmdbFetchSafe<TmdbTitleDetails>(`/${segment}/${tmdbId}`, {
+  const request = bestEffort ? tmdbFetchSafe<TmdbTitleDetails> : tmdbFetch<TmdbTitleDetails>;
+  return request(`/${segment}/${tmdbId}`, {
     language: "en-US",
     append_to_response: "credits,external_ids",
   });

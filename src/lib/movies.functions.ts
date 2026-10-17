@@ -6,6 +6,7 @@ import {
   TMDB_POSTER_SIZE,
   TMDB_BACKDROP_SIZE,
   tmdbImageUrl,
+  tmdbFetch,
   tmdbFetchSafe,
   fetchTmdbDetails,
   findTmdbByImdb,
@@ -172,19 +173,25 @@ export const searchMovies = createServerFn({ method: "POST" })
       ).length;
       const moviePages = strongCachedHits >= 8 ? 1 : 3;
 
-      const first = await Promise.all([
-        tmdbFetchSafe<TmdbSearchResponse>("/search/movie", {
+      const first = await Promise.allSettled([
+        tmdbFetch<TmdbSearchResponse>("/search/movie", {
           query: q,
           page: 1,
           include_adult: false,
         }),
-        tmdbFetchSafe<TmdbSearchResponse>("/search/tv", {
+        tmdbFetch<TmdbSearchResponse>("/search/tv", {
           query: q,
           page: 1,
           include_adult: false,
         }),
       ]);
-      const [movieRes, tvRes] = first;
+      if (first.every((result) => result.status === "rejected") && cachedResults.length === 0) {
+        const failed = first.find((result) => result.status === "rejected");
+        throw new Error(failed?.status === "rejected" && failed.reason instanceof Error
+          ? failed.reason.message : "Movie search is temporarily unavailable. Please try again later.");
+      }
+      const movieRes = first[0].status === "fulfilled" ? first[0].value : null;
+      const tvRes = first[1].status === "fulfilled" ? first[1].value : null;
       if (movieRes) for (const it of movieRes.results ?? []) pushTmdb(it, "movie");
       if (tvRes) for (const it of tvRes.results ?? []) pushTmdb(it, "series");
 
@@ -204,6 +211,8 @@ export const searchMovies = createServerFn({ method: "POST" })
         );
       }
       await Promise.all(extraPages);
+    } else if (cachedResults.length === 0) {
+      throw new Error("Movie search is not configured. Add TMDB_API_KEY in Lovable Secrets.");
     }
 
     // 3. Merge + dedupe. Cached entries (with imdbID) win; cross-tier overlap
@@ -521,13 +530,13 @@ export const getMovieMeta = createServerFn({ method: "POST" })
     // Resolve a TMDB id when we only have an IMDb id.
     if (tmdbId === null) {
       if (!imdbId) throw new Error("Invalid movie id");
-      const found = await findTmdbByImdb(imdbId);
+      const found = await findTmdbByImdb(imdbId, false);
       if (!found) throw new Error("Title not found in TMDB");
       tmdbId = found.tmdbId;
       mediaType = found.mediaType;
     }
 
-    const details = await fetchTmdbDetails(tmdbId, mediaType);
+    const details = await fetchTmdbDetails(tmdbId, mediaType, false);
     if (!details || !tmdbDisplayTitle(details)) throw new Error("Title not found in TMDB");
     const meta = mapTmdbDetailsToMeta(details, imdbId ?? "", mediaType);
 
