@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { fetchTmdbDetails, tmdbFetch, tmdbFetchSafe, tmdbImageUrl } from "./tmdb";
+import { fetchTmdbDetails, tmdbFetch, tmdbFetchSafe, tmdbImageUrl } from "../src/lib/tmdb";
 
 const originalFetch = globalThis.fetch;
 const originalToken = process.env['TMDB_API_KEY'];
