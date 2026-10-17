@@ -2,17 +2,38 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
+import {
+  TMDB_POSTER_SIZE,
+  TMDB_BACKDROP_SIZE,
+  tmdbImageUrl,
+  tmdbFetchSafe,
+  fetchTmdbDetails,
+  findTmdbByImdb,
+  tmdbDisplayTitle,
+  tmdbYear,
+  hasTmdbToken,
+  type MediaType,
+  type TmdbSearchResponse,
+  type TmdbSearchItem,
+  type TmdbTitleDetails,
+} from "@/lib/tmdb";
 
-const OMDB = "https://www.omdbapi.com/";
 const IMDB_ID_RE = /^tt\d+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type OmdbSearchResult = {
+/**
+ * A single search hit. `imdbID` is the app's canonical public id, but TMDB
+ * search responses do not carry it — so freshly-discovered titles ship with an
+ * empty `imdbID` and a populated `tmdbId`, and the IMDb id is resolved later
+ * when `getMovieMeta` fetches full details. Cached titles always have `imdbID`.
+ */
+export type MovieSearchResult = {
   imdbID: string;
+  tmdbId?: number;
   Title: string;
   Year: string;
   Poster: string;
-  Type: "movie" | "series";
+  Type: MediaType;
 };
 
 export type MovieMeta = {
@@ -25,8 +46,9 @@ export type MovieMeta = {
   director: string | null;
   actors: string | null;
   poster_url: string | null;
+  backdrop_url: string | null;
   imdb_rating: number | null;
-  media_type: "movie" | "series";
+  media_type: MediaType;
 };
 
 /** Public movie payload served from the shared cache for /movie/{imdbId} pages. */
@@ -49,7 +71,7 @@ export type PublicMovieLookup =
   | { status: "redirect"; imdbId: string }
   | { status: "not_found" };
 
-function normalizeType(t?: string | null): "movie" | "series" {
+function normalizeType(t?: string | null): MediaType {
   return t === "series" ? "series" : "movie";
 }
 function parseYear(y?: string | null): number | null {
@@ -57,36 +79,62 @@ function parseYear(y?: string | null): number | null {
   const m = y.match(/\d{4}/);
   return m ? Number(m[0]) : null;
 }
-function parseRuntime(r?: string | null): number | null {
-  if (!r) return null;
-  const m = r.match(/\d+/);
-  return m ? Number(m[0]) : null;
-}
-function parseRating(r?: string | null): number | null {
-  if (!r || r === "N/A") return null;
-  const n = Number(r);
-  return Number.isFinite(n) ? n : null;
-}
-function cleanPoster(p?: string | null): string | null {
-  if (!p || p === "N/A") return null;
-  return p;
+
+/**
+ * Maps a TMDB title-detail payload (movie or tv, with appended credits +
+ * external ids) onto the app's MovieMeta shape. `imdb_id` comes straight from
+ * the TMDB detail response, so the canonical IMDb URL is preserved.
+ */
+function mapTmdbDetailsToMeta(
+  d: TmdbTitleDetails,
+  fallbackImdbId: string,
+  mediaType: MediaType,
+): MovieMeta {
+  const crew = d.credits?.crew ?? [];
+  const director = crew
+    .filter((c) => c.job === "Director")
+    .map((c) => c.name)
+    .slice(0, 2)
+    .join(", ");
+  const cast = d.credits?.cast ?? [];
+  const actors = cast
+    .map((c) => c.name)
+    .filter(Boolean)
+    .slice(0, 10)
+    .join(", ");
+  const runtime =
+    mediaType === "series" ? (d.episode_run_time?.find((r) => r > 0) ?? null) : (d.runtime ?? null);
+  return {
+    imdb_id: d.imdb_id || fallbackImdbId || "",
+    title: tmdbDisplayTitle(d),
+    release_year: tmdbYear(d),
+    runtime,
+    genres: (d.genres ?? []).map((g) => g.name).filter(Boolean),
+    overview: d.overview && d.overview.trim() ? d.overview.trim() : null,
+    director: director || null,
+    actors: actors || null,
+    poster_url: tmdbImageUrl(d.poster_path, TMDB_POSTER_SIZE),
+    backdrop_url: tmdbImageUrl(d.backdrop_path, TMDB_BACKDROP_SIZE),
+    imdb_rating: typeof d.vote_average === "number" && d.vote_average > 0 ? d.vote_average : null,
+    media_type: mediaType,
+  };
 }
 
 export const searchMovies = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ query: z.string().min(1).max(120) }))
-  .handler(async ({ data, context }): Promise<OmdbSearchResult[]> => {
+  .handler(async ({ data, context }): Promise<MovieSearchResult[]> => {
     const q = data.query.trim();
     const qLower = q.toLowerCase();
 
-    // 1. Local cache lookup
+    // 1. Local cache lookup — cached rows carry the canonical imdbID.
     const { data: cached } = await context.supabase
       .from("movie_cache")
       .select("imdb_id, title, release_year, poster_url, media_type")
       .ilike("title", `%${q}%`)
       .limit(50);
 
-    const cachedResults: OmdbSearchResult[] = (cached ?? []).map((c) => ({
+    const cachedResults: MovieSearchResult[] = (cached ?? []).map((c) => ({
       imdbID: c.imdb_id,
       Title: c.title,
       Year: c.release_year?.toString() ?? "",
@@ -94,86 +142,86 @@ export const searchMovies = createServerFn({ method: "POST" })
       Type: normalizeType((c as { media_type?: string }).media_type),
     }));
 
-    // 2. OMDb lookup — always query at least page 1 so titles missing from the
-    // cache (e.g. an exact-match series) can never be hidden by a rich cache.
-    const strongCachedHits = cachedResults.filter((r) =>
-      r.Title.toLowerCase().includes(qLower),
-    ).length;
-    const maxPages = strongCachedHits >= 8 ? 1 : 5;
+    // 2. TMDB lookup — query both movies and series so titles missing from the
+    // cache can never be hidden by a rich local cache. TMDB search responses do
+    // not include imdb_id, so fresh hits carry a tmdbId and an empty imdbID;
+    // getMovieMeta resolves the IMDb id when the title is actually picked.
+    const MAX_RESULTS = 50;
+    const tmdbResults: MovieSearchResult[] = [];
+    if (hasTmdbToken()) {
+      const mapItem = (item: TmdbSearchItem, type: MediaType): MovieSearchResult => ({
+        imdbID: "",
+        tmdbId: item.id,
+        Title: (item.title || item.name || "").trim(),
+        Year: String(tmdbYear(item) ?? ""),
+        Poster: tmdbImageUrl(item.poster_path, TMDB_POSTER_SIZE) ?? "",
+        Type: type,
+      });
 
-    const MAX_OMDB_RESULTS = 50;
-    const omdbResults: OmdbSearchResult[] = [];
-    {
-      const key = process.env.OMDB_API_KEY;
-      if (key) {
-        const seen = new Set<string>();
-        let totalAvailable = Infinity;
-        for (let page = 1; page <= maxPages; page++) {
-          if (omdbResults.length >= MAX_OMDB_RESULTS) break;
-          if ((page - 1) * 10 >= totalAvailable) break;
+      const seenTmdb = new Set<number>();
+      const pushTmdb = (item: TmdbSearchItem, type: MediaType) => {
+        if (seenTmdb.has(item.id)) return;
+        seenTmdb.add(item.id);
+        tmdbResults.push(mapItem(item, type));
+      };
 
-          try {
-            const url = `${OMDB}?apikey=${key}&s=${encodeURIComponent(q)}&page=${page}`;
-            const res = await fetch(url);
-            if (!res.ok) break;
-            const json = (await res.json()) as {
-              Search?: OmdbSearchResult[];
-              Response?: string;
-              totalResults?: string;
-            };
-            if (json.Response === "False" || !json.Search?.length) break;
-            const total = Number(json.totalResults);
-            if (Number.isFinite(total)) totalAvailable = total;
-            for (const r of json.Search) {
-              const t = (r as unknown as { Type?: string }).Type;
-              if (t !== "movie" && t !== "series") continue;
-              if (seen.has(r.imdbID)) continue;
-              seen.add(r.imdbID);
-              omdbResults.push({
-                imdbID: r.imdbID,
-                Title: r.Title,
-                Year: r.Year,
-                Poster: cleanPoster(r.Poster) ?? "",
-                Type: normalizeType(t),
-              });
-              if (omdbResults.length >= MAX_OMDB_RESULTS) break;
-            }
-          } catch {
-            // network failure — fall back to what we have
-            break;
-          }
-        }
-      }
-    }
+      // Fetch page 1 of each family concurrently; only pull follow-up movie
+      // pages when the local cache is thin (mirrors the old OMDb heuristic).
+      const strongCachedHits = cachedResults.filter((r) =>
+        r.Title.toLowerCase().includes(qLower),
+      ).length;
+      const moviePages = strongCachedHits >= 8 ? 1 : 3;
 
-    // 3. Insert new OMDb results into shared cache (full metadata is filled by getMovieMeta on demand)
-    const cachedIds = new Set(cachedResults.map((r) => r.imdbID));
-    const newOmdb = omdbResults.filter((r) => !cachedIds.has(r.imdbID));
-    if (newOmdb.length > 0) {
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin.from("movie_cache").upsert(
-          newOmdb.map((r) => ({
-            imdb_id: r.imdbID,
-            title: r.Title,
-            release_year: parseYear(r.Year),
-            poster_url: r.Poster || null,
-            media_type: r.Type,
-          })),
-          { onConflict: "imdb_id", ignoreDuplicates: true },
+      const first = await Promise.all([
+        tmdbFetchSafe<TmdbSearchResponse>("/search/movie", {
+          query: q,
+          page: 1,
+          include_adult: false,
+        }),
+        tmdbFetchSafe<TmdbSearchResponse>("/search/tv", {
+          query: q,
+          page: 1,
+          include_adult: false,
+        }),
+      ]);
+      const [movieRes, tvRes] = first;
+      if (movieRes) for (const it of movieRes.results ?? []) pushTmdb(it, "movie");
+      if (tvRes) for (const it of tvRes.results ?? []) pushTmdb(it, "series");
+
+      // Follow-up movie pages to enrich results toward MAX_RESULTS.
+      const extraPages = [] as Promise<void>[];
+      const totalPages = movieRes?.total_pages ?? 1;
+      for (let page = 2; page <= Math.min(moviePages, totalPages); page++) {
+        extraPages.push(
+          (async () => {
+            const res = await tmdbFetchSafe<TmdbSearchResponse>("/search/movie", {
+              query: q,
+              page,
+              include_adult: false,
+            });
+            if (res) for (const it of res.results ?? []) pushTmdb(it, "movie");
+          })(),
         );
-      } catch {
-        // cache write failure shouldn't block search
       }
+      await Promise.all(extraPages);
     }
 
-    // 4. Merge + dedupe by imdbID (prefer cached entries)
-    const merged = new Map<string, OmdbSearchResult>();
+    // 3. Merge + dedupe. Cached entries (with imdbID) win; cross-tier overlap
+    // is detected by normalized title+year since TMDB hits lack an imdbID.
+    const merged = new Map<string, MovieSearchResult>();
+    const titleKey = (title: string, year: string) =>
+      `${title.toLowerCase().trim()}::${year || ""}`;
     for (const r of cachedResults) merged.set(r.imdbID, r);
-    for (const r of omdbResults) if (!merged.has(r.imdbID)) merged.set(r.imdbID, r);
+    const cachedTitleKeys = new Set(cachedResults.map((r) => titleKey(r.Title, r.Year)));
+    for (const r of tmdbResults) {
+      if (r.imdbID && merged.has(r.imdbID)) continue;
+      if (cachedTitleKeys.has(titleKey(r.Title, r.Year))) continue;
+      merged.set(`tmdb:${r.tmdbId}`, r);
+      cachedTitleKeys.add(titleKey(r.Title, r.Year));
+    }
 
-    // 5. Sort: exact → starts-with → partial → newest year
-    const rank = (r: OmdbSearchResult) => {
+    // 4. Sort: exact → starts-with → partial → newest year
+    const rank = (r: MovieSearchResult) => {
       const t = r.Title.toLowerCase();
       if (t === qLower) return 0;
       if (t.startsWith(qLower)) return 1;
@@ -187,12 +235,12 @@ export const searchMovies = createServerFn({ method: "POST" })
         if (ra !== rb) return ra - rb;
         return (parseYear(b.Year) ?? 0) - (parseYear(a.Year) ?? 0);
       })
-      .slice(0, MAX_OMDB_RESULTS);
+      .slice(0, MAX_RESULTS);
   });
 
 /**
  * Public (no auth required) lookup for the canonical /movie/{imdbId} page.
- * Reads only the shared movie cache — never hits OMDb — so SEO rendering
+ * Reads only the shared movie cache — never hits TMDB — so SEO rendering
  * reuses cached data. Legacy /movie/{movieRowUuid} URLs resolve to the
  * movie's imdb_id and report a redirect so there is exactly one public URL
  * per title no matter how many users added it.
@@ -221,6 +269,7 @@ export const getPublicMovie = createServerFn({ method: "POST" })
           director: row.director,
           actors: row.actors,
           poster_url: row.poster_url,
+          backdrop_url: row.backdrop_url,
           imdb_rating: row.imdb_rating,
           media_type: normalizeType(row.media_type),
           updated_at: row.updated_at,
@@ -234,7 +283,7 @@ export const getPublicMovie = createServerFn({ method: "POST" })
       const { data: entry } = await supabaseAdmin
         .from("movies")
         .select(
-          "imdb_id, title, release_year, runtime, genres, overview, director, actors, poster_url, imdb_rating, media_type",
+          "imdb_id, title, release_year, runtime, genres, overview, director, actors, poster_url, backdrop_url, imdb_rating, media_type",
         )
         .eq("id", data.id)
         .maybeSingle();
@@ -259,6 +308,7 @@ export const getPublicMovie = createServerFn({ method: "POST" })
               director: entry.director,
               actors: entry.actors,
               poster_url: entry.poster_url,
+              backdrop_url: entry.backdrop_url,
               imdb_rating: entry.imdb_rating,
               media_type: entry.media_type,
             },
@@ -274,11 +324,11 @@ export const getPublicMovie = createServerFn({ method: "POST" })
 
 /**
  * "You Might Also Like" picks for a movie page, straight from the shared
- * movie cache — never hits OMDb. Candidates must share at least one genre
+ * movie cache — never hits TMDB. Candidates must share at least one genre
  * with the current movie and are then ranked by a relevance score:
  *   1. Number of shared genres (strict matching beats a single loose overlap).
  *   2. Shared director and shared cast members.
- *   3. IMDb rating only as a mild tie-breaker — never the primary signal.
+ *   3. Community (TMDB) rating only as a mild tie-breaker — never the primary signal.
  * To keep the row from being deterministic, the top-scoring ~25 candidates
  * are shuffled before picking 5, so each page view shows a varied but still
  * highly relevant selection.
@@ -420,81 +470,88 @@ export const getSimilarMovies = createServerFn({ method: "POST" })
 
 export const getMovieMeta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ imdbId: z.string().regex(/^tt\d+$/) }))
+  .inputValidator(
+    z.object({
+      // Either an IMDb id (`tt\d+`, the canonical public id) or a numeric TMDB id
+      // (used for freshly-searched titles whose IMDb id isn't known yet).
+      id: z.string().regex(/^(tt\d+|\d{1,10})$/),
+      mediaType: z.enum(["movie", "series"]).optional(),
+    }),
+  )
   .handler(async ({ data, context }): Promise<MovieMeta> => {
-    // Cache hit?
-    const { data: cached } = await context.supabase
-      .from("movie_cache")
-      .select("*")
-      .eq("imdb_id", data.imdbId)
-      .maybeSingle();
+    const imdbId: string | null = /^tt\d+$/.test(data.id) ? data.id : null;
+    let tmdbId: number | null = /^\d+$/.test(data.id) ? Number(data.id) : null;
+    let mediaType: MediaType = data.mediaType ?? "movie";
 
-    // A cache row is only "complete" when the OMDb detail fields are populated.
-    // searchMovies() upserts partial rows (title/year/poster only) so we must
-    // not treat those as valid cache hits — otherwise every newly-added movie
-    // is saved with empty genres/overview/etc. and falls back to "Drama".
-    const isComplete = (row: typeof cached): boolean =>
-      !!row &&
-      Array.isArray(row.genres) &&
-      row.genres.length > 0 &&
-      (row.overview != null || row.director != null || row.actors != null || row.runtime != null);
+    const toMeta = (row: Record<string, unknown>): MovieMeta => ({
+      imdb_id: row.imdb_id as string,
+      title: row.title as string,
+      release_year: (row.release_year as number | null) ?? null,
+      runtime: (row.runtime as number | null) ?? null,
+      genres: (row.genres as string[] | null) ?? [],
+      overview: (row.overview as string | null) ?? null,
+      director: (row.director as string | null) ?? null,
+      actors: (row.actors as string | null) ?? null,
+      poster_url: (row.poster_url as string | null) ?? null,
+      backdrop_url: (row.backdrop_url as string | null) ?? null,
+      imdb_rating: (row.imdb_rating as number | null) ?? null,
+      media_type: normalizeType(row.media_type as string | null | undefined),
+    });
 
-    if (cached && isComplete(cached)) {
-      return {
-        imdb_id: cached.imdb_id,
-        title: cached.title,
-        release_year: cached.release_year,
-        runtime: cached.runtime,
-        genres: cached.genres ?? [],
-        overview: cached.overview,
-        director: cached.director,
-        actors: cached.actors,
-        poster_url: cached.poster_url,
-        imdb_rating: (cached as { imdb_rating: number | null }).imdb_rating ?? null,
-        media_type: normalizeType((cached as { media_type?: string }).media_type),
-      };
+    // A cache row is only "complete" once the detail fields are populated. The
+    // cache is keyed on imdb_id, so this fast path needs an IMDb id — freshly
+    // searched TMDB titles resolve to an IMDb id (and are cached) on first fetch.
+    if (imdbId) {
+      const { data: cached } = await context.supabase
+        .from("movie_cache")
+        .select("*")
+        .eq("imdb_id", imdbId)
+        .maybeSingle();
+      const isComplete =
+        !!cached &&
+        Array.isArray(cached.genres) &&
+        cached.genres.length > 0 &&
+        (cached.overview != null ||
+          cached.director != null ||
+          cached.actors != null ||
+          cached.runtime != null);
+      if (cached && isComplete) return toMeta(cached as unknown as Record<string, unknown>);
     }
 
-    const key = process.env.OMDB_API_KEY;
-    if (!key) throw new Error("OMDB_API_KEY not configured");
-    const res = await fetch(`${OMDB}?apikey=${key}&i=${encodeURIComponent(data.imdbId)}&plot=full`);
-    if (!res.ok) throw new Error("OMDb request failed");
-    const json = (await res.json()) as Record<string, string>;
-    if (json.Response === "False") throw new Error(json.Error || "Title not found");
+    // Resolve a TMDB id when we only have an IMDb id.
+    if (tmdbId === null) {
+      if (!imdbId) throw new Error("Invalid movie id");
+      const found = await findTmdbByImdb(imdbId);
+      if (!found) throw new Error("Title not found in TMDB");
+      tmdbId = found.tmdbId;
+      mediaType = found.mediaType;
+    }
 
-    const meta: MovieMeta = {
-      imdb_id: data.imdbId,
-      title: json.Title ?? "",
-      release_year: parseYear(json.Year),
-      runtime: parseRuntime(json.Runtime),
-      genres: (json.Genre ?? "")
-        .split(",")
-        .map((g) => g.trim())
-        .filter(Boolean),
-      overview: json.Plot && json.Plot !== "N/A" ? json.Plot : null,
-      director: json.Director && json.Director !== "N/A" ? json.Director : null,
-      actors: json.Actors && json.Actors !== "N/A" ? json.Actors : null,
-      poster_url: cleanPoster(json.Poster),
-      imdb_rating: parseRating(json.imdbRating),
-      media_type: normalizeType(json.Type),
-    };
+    const details = await fetchTmdbDetails(tmdbId, mediaType);
+    if (!details || !tmdbDisplayTitle(details)) throw new Error("Title not found in TMDB");
+    const meta = mapTmdbDetailsToMeta(details, imdbId ?? "", mediaType);
 
-    // Upsert into cache with admin client
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("movie_cache").upsert({
-      imdb_id: meta.imdb_id,
-      title: meta.title,
-      release_year: meta.release_year,
-      runtime: meta.runtime,
-      genres: meta.genres,
-      overview: meta.overview,
-      director: meta.director,
-      actors: meta.actors,
-      poster_url: meta.poster_url,
-      imdb_rating: meta.imdb_rating,
-      media_type: meta.media_type,
-      raw: json,
-    });
+    // Cache keyed on the canonical IMDb id. Titles TMDB has no IMDb id for
+    // (rare) are still returned so they can be saved to a personal library —
+    // they simply aren't shared-cached until an IMDb id exists.
+    if (meta.imdb_id) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("movie_cache").upsert({
+        imdb_id: meta.imdb_id,
+        title: meta.title,
+        release_year: meta.release_year,
+        runtime: meta.runtime,
+        genres: meta.genres,
+        overview: meta.overview,
+        director: meta.director,
+        actors: meta.actors,
+        poster_url: meta.poster_url,
+        backdrop_url: meta.backdrop_url,
+        imdb_rating: meta.imdb_rating,
+        media_type: meta.media_type,
+        raw: details,
+      });
+    }
 
     return meta;
   });

@@ -35,7 +35,7 @@ function truncate(text: string, max = 160): string {
 
 function movieTitle(movie: PublicMovie): string {
   const year = movie.release_year ? ` (${movie.release_year})` : "";
-  const details = movie.imdb_rating != null ? "IMDb Rating, Cast & Details" : "Cast & Details";
+  const details = movie.imdb_rating != null ? "Rating, Cast & Details" : "Cast & Details";
   return `${movie.title}${year} – ${details} | Reel Movie`;
 }
 
@@ -46,9 +46,15 @@ function movieDescription(movie: PublicMovie): string {
   return `${genres}See poster, cast, director and more for ${movie.title}${year} on Reel Movie.`;
 }
 
-function parseImdbVotes(raw: unknown): number | null {
+/**
+ * Vote count for aggregateRating. New rows store the raw TMDB payload
+ * (`vote_count`, a number); legacy OMDb rows carry `imdbVotes` (a string).
+ */
+function parseVoteCount(raw: unknown): number | null {
   if (!raw || typeof raw !== "object") return null;
-  const votes = (raw as Record<string, unknown>).imdbVotes;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.vote_count === "number" && obj.vote_count > 0) return obj.vote_count;
+  const votes = obj.imdbVotes;
   if (typeof votes !== "string") return null;
   const digits = votes.replace(/[^0-9]/g, "");
   if (!digits) return null;
@@ -58,7 +64,7 @@ function parseImdbVotes(raw: unknown): number | null {
 
 function buildJsonLd(movie: PublicMovie) {
   const canonical = `${SITE_URL}/movie/${movie.imdb_id}`;
-  const votes = parseImdbVotes(movie.raw);
+  const votes = parseVoteCount(movie.raw);
   const people = (value: string) =>
     value
       .split(",")
@@ -81,7 +87,8 @@ function buildJsonLd(movie: PublicMovie) {
   if (movie.director) ld.director = people(movie.director);
   if (movie.actors) ld.actor = people(movie.actors);
   // Only emit aggregateRating when the vote count is genuinely available in
-  // the cached OMDb payload — never fabricate a rating count.
+  // the cached payload (TMDB `vote_count` or legacy `imdbVotes`) — never
+  // fabricate a rating count.
   if (movie.imdb_rating != null && votes != null) {
     ld.aggregateRating = {
       "@type": "AggregateRating",
@@ -308,7 +315,7 @@ function MovieDetail() {
               {movie.imdb_rating != null && (
                 <>
                   <span aria-hidden>·</span>
-                  <span>IMDb {movie.imdb_rating}/10</span>
+                  <span>TMDB {movie.imdb_rating}/10</span>
                 </>
               )}
             </div>

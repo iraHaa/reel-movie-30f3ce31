@@ -54,7 +54,6 @@ export const Route = createFileRoute("/")({
         }),
       },
     ],
-
   }),
   component: Landing,
 });
@@ -68,8 +67,6 @@ function Landing() {
     });
   }, [navigate]);
 
-
-
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border/60">
@@ -82,9 +79,15 @@ function Landing() {
             </div>
           </div>
           <nav aria-label="Primary" className="flex items-center gap-2">
-            <Button asChild variant="ghost"><Link to="/discover">Discover</Link></Button>
-            <Button asChild variant="ghost"><Link to="/auth">Sign in</Link></Button>
-            <Button asChild><Link to="/auth">Get started</Link></Button>
+            <Button asChild variant="ghost">
+              <Link to="/discover">Discover</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/auth">Sign in</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/auth">Get started</Link>
+            </Button>
           </nav>
         </div>
       </header>
@@ -99,38 +102,82 @@ function Landing() {
             personal watchlist. Keep it private or share your profile with friends.
           </p>
           <div className="mt-10 flex flex-wrap gap-3 justify-center">
-            <Button asChild size="lg"><Link to="/auth">Create free account</Link></Button>
-            <Button asChild size="lg" variant="outline"><Link to="/auth">Sign in</Link></Button>
+            <Button asChild size="lg">
+              <Link to="/auth">Create free account</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link to="/auth">Sign in</Link>
+            </Button>
           </div>
         </div>
 
         <section aria-labelledby="why" className="mt-24">
           <div className="flex items-center justify-center gap-3">
             <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80" aria-hidden="true" />
-            <h2 id="why" className="font-display text-3xl sm:text-4xl text-center">Why Choose Reel Movie?</h2>
+            <h2 id="why" className="font-display text-3xl sm:text-4xl text-center">
+              Why Choose Reel Movie?
+            </h2>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-3 text-left">
-            <Card title="Everything in one place" body="One movie tracking website for films and series — no spreadsheets, no scattered notes." />
-            <Card title="No payments, no limits" body="Reel Movie is a free movie tracker app with no limits on your collection." />
-            <Card title="Ratings that fit you" body="Add your own rating in */* format — 8.5/10 or 4/5, whatever you prefer." />
-            <Card title="Movies and TV shows" body="A true movie and TV show tracker: log films, mini-series and long-running shows alike." />
-            <Card title="Private or public" body="Keep your collection private, or open a public profile so friends can follow what you watch." />
-            <Card title="Insightful stats" body="See your favorite genres, monthly activity and average ratings from your movies tracking history." />
+            <Card
+              title="Everything in one place"
+              body="One movie tracking website for films and series — no spreadsheets, no scattered notes."
+            />
+            <Card
+              title="No payments, no limits"
+              body="Reel Movie is a free movie tracker app with no limits on your collection."
+            />
+            <Card
+              title="Ratings that fit you"
+              body="Add your own rating in */* format — 8.5/10 or 4/5, whatever you prefer."
+            />
+            <Card
+              title="Movies and TV shows"
+              body="A true movie and TV show tracker: log films, mini-series and long-running shows alike."
+            />
+            <Card
+              title="Private or public"
+              body="Keep your collection private, or open a public profile so friends can follow what you watch."
+            />
+            <Card
+              title="Insightful stats"
+              body="See your favorite genres, monthly activity and average ratings from your movies tracking history."
+            />
           </div>
         </section>
 
         <section aria-labelledby="features" className="mt-24">
           <div className="flex items-center justify-center gap-3">
             <Clapperboard className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80" aria-hidden="true" />
-            <h2 id="features" className="font-display text-3xl sm:text-4xl text-center">Features</h2>
+            <h2 id="features" className="font-display text-3xl sm:text-4xl text-center">
+              Features
+            </h2>
           </div>
           <div className="mt-10 grid gap-8 md:grid-cols-2 text-left">
-            <Feature title="Watched list and watchlist" body="Two tabs, one home. Log what you've seen and queue what's next in your movies tracker." />
-            <Feature title="Genre filters and search" body="Filter by genre, search your library instantly and sort by date, title or rating." />
-            <Feature title="TV series tracker" body="Follow shows season after season with the same tools you use for movies." />
-            <Feature title="Personal ratings" body="Rate every title in */* format and compare your scores with IMDb ratings." />
-            <Feature title="Stats and calendar" body="Charts of your viewing activity plus a calendar to browse watch history by month and year." />
-            <Feature title="Social discovery" body="Browse public profiles, follow other movie lovers and see what they're watching." />
+            <Feature
+              title="Watched list and watchlist"
+              body="Two tabs, one home. Log what you've seen and queue what's next in your movies tracker."
+            />
+            <Feature
+              title="Genre filters and search"
+              body="Filter by genre, search your library instantly and sort by date, title or rating."
+            />
+            <Feature
+              title="TV series tracker"
+              body="Follow shows season after season with the same tools you use for movies."
+            />
+            <Feature
+              title="Personal ratings"
+              body="Rate every title in */* format and compare your scores with community ratings."
+            />
+            <Feature
+              title="Stats and calendar"
+              body="Charts of your viewing activity plus a calendar to browse watch history by month and year."
+            />
+            <Feature
+              title="Social discovery"
+              body="Browse public profiles, follow other movie lovers and see what they're watching."
+            />
           </div>
         </section>
 
@@ -142,29 +189,49 @@ function Landing() {
             </h2>
           </div>
           <p className="mt-6 text-muted-foreground leading-relaxed">
-            Watching movies and TV shows across Netflix, Prime Video, Disney+, or other
-            platforms? Keep your entire viewing history in one place. Track what you've
-            watched, build your watchlist, and rate your favorites with Reel Movie.
+            Watching movies and TV shows across Netflix, Prime Video, Disney+, or other platforms?
+            Keep your entire viewing history in one place. Track what you've watched, build your
+            watchlist, and rate your favorites with Reel Movie.
           </p>
         </section>
 
         <section aria-labelledby="how" className="mt-24">
           <div className="flex items-center justify-center gap-3">
             <Workflow className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80" aria-hidden="true" />
-            <h2 id="how" className="font-display text-3xl sm:text-4xl text-center">How It Works</h2>
+            <h2 id="how" className="font-display text-3xl sm:text-4xl text-center">
+              How It Works
+            </h2>
           </div>
           <ol className="mt-10 grid gap-6 md:grid-cols-4 text-left">
-            <Step n={1} title="Create an account" body="Sign up with your email and confirm your address — no payment details needed." />
-            <Step n={2} title="Search a title" body="Find any movie or TV series and add it to your collection with one click." />
-            <Step n={3} title="Track your viewing" body="Mark titles as Watched or add them to your Watchlist. Drop a quick rating and personal note as you go." />
-            <Step n={4} title="Share and connect" body="Share your movie collection with friends and explore profiles of other fans." />
+            <Step
+              n={1}
+              title="Create an account"
+              body="Sign up with your email and confirm your address — no payment details needed."
+            />
+            <Step
+              n={2}
+              title="Search a title"
+              body="Find any movie or TV series and add it to your collection with one click."
+            />
+            <Step
+              n={3}
+              title="Track your viewing"
+              body="Mark titles as Watched or add them to your Watchlist. Drop a quick rating and personal note as you go."
+            />
+            <Step
+              n={4}
+              title="Share and connect"
+              body="Share your movie collection with friends and explore profiles of other fans."
+            />
           </ol>
         </section>
 
         <section aria-labelledby="faq" className="mt-24 max-w-3xl mx-auto">
           <div className="flex items-center justify-center gap-3">
             <HelpCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80" aria-hidden="true" />
-            <h2 id="faq" className="font-display text-3xl sm:text-4xl text-center">FAQ</h2>
+            <h2 id="faq" className="font-display text-3xl sm:text-4xl text-center">
+              FAQ
+            </h2>
           </div>
           <div className="mt-10 space-y-6 text-left">
             {FAQ.map((f) => (
@@ -176,7 +243,10 @@ function Landing() {
           </div>
         </section>
 
-        <section aria-labelledby="cta" className="mt-24 rounded-lg border border-border bg-card p-10 text-center">
+        <section
+          aria-labelledby="cta"
+          className="mt-24 rounded-lg border border-border bg-card p-10 text-center"
+        >
           <div className="flex items-center justify-center gap-3">
             <Film className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80" aria-hidden="true" />
             <h2 id="cta" className="font-display text-3xl sm:text-4xl">
@@ -184,14 +254,19 @@ function Landing() {
             </h2>
           </div>
           <div className="mt-8">
-            <Button asChild size="lg"><Link to="/auth">Create free account</Link></Button>
+            <Button asChild size="lg">
+              <Link to="/auth">Create free account</Link>
+            </Button>
           </div>
         </section>
       </main>
 
       <footer className="border-t border-border/60">
         <div className="mx-auto max-w-6xl px-6 py-8 text-center text-xs text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Reel Movie. Made in Ukraine. Movie data from OMDb API.</p>
+          <p>
+            &copy; {new Date().getFullYear()} Reel Movie. Made in Ukraine. This product uses the
+            TMDB API but is not endorsed or certified by TMDB.
+          </p>
         </div>
       </footer>
     </div>
@@ -213,7 +288,7 @@ const FAQ = [
   },
   {
     q: "How do ratings work?",
-    a: "You add your own rating in */* format, such as 8.5/10 or 4/5, alongside the IMDb score shown on the details page.",
+    a: "You add your own rating in */* format, such as 8.5/10 or 4/5, alongside the community score shown on the details page.",
   },
   {
     q: "Is my collection private?",
@@ -225,7 +300,7 @@ const FAQ = [
   },
   {
     q: "Where does the movie information come from?",
-    a: "Posters, genres, cast, runtime, and release years are fetched automatically from OMDb — a public movie and TV series database.",
+    a: "Posters, backdrops, genres, cast, runtime, and release years are fetched automatically from TMDB (The Movie Database) — a public movie and TV series database.",
   },
   {
     q: "Do I need to install anything?",
@@ -262,4 +337,3 @@ function Feature({ title, body }: { title: string; body: string }) {
     </div>
   );
 }
-

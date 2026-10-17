@@ -39,8 +39,8 @@ export const Route = createFileRoute("/sitemap.xml")({
       GET: async () => {
         const today = new Date().toISOString().split("T")[0];
 
-        // One entry per title in the shared OMDb cache — the same source the
-        // public movie pages render from.
+        // One entry per title in the shared movie cache (sourced from TMDB) —
+        // the same source the public movie pages render from.
         const movieEntries: SitemapEntry[] = [];
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

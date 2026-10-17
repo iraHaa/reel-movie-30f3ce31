@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Movie } from "@/components/MovieCard";
-import { searchMovies, getMovieMeta, type OmdbSearchResult } from "@/lib/movies.functions";
+import { searchMovies, getMovieMeta, type MovieSearchResult } from "@/lib/movies.functions";
 import { Film, Loader2, Search } from "lucide-react";
 
 interface Props {
@@ -33,10 +33,10 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
   const navigate = useNavigate();
 
   const [query, setQuery] = useState(movie?.title ?? "");
-  const [results, setResults] = useState<OmdbSearchResult[]>([]);
+  const [results, setResults] = useState<MovieSearchResult[]>([]);
   const [library, setLibrary] = useState<Map<string, string>>(new Map());
   const [searching, setSearching] = useState(false);
-  const [selected, setSelected] = useState<OmdbSearchResult | null>(
+  const [selected, setSelected] = useState<MovieSearchResult | null>(
     movie?.imdb_id
       ? {
           imdbID: movie.imdb_id,
@@ -106,8 +106,11 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
     };
   }, [query, editing, selected, search]);
 
-  function pickResult(r: OmdbSearchResult) {
-    if (library.has(r.imdbID)) {
+  function pickResult(r: MovieSearchResult) {
+    // Only titles that already have a canonical IMDb id (i.e. cached / in the
+    // user's library) can be matched here; freshly-searched TMDB hits have an
+    // empty imdbID and fall through to selection.
+    if (r.imdbID && library.has(r.imdbID)) {
       // Already in the user's library — open the canonical public movie page.
       onCancel();
       navigate({ to: "/movie/$id", params: { id: r.imdbID } });
@@ -143,20 +146,27 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
         if (error) throw error;
         toast.success("Movie updated.");
       } else {
-        // Fetch metadata (cached server-side)
-        const meta = await fetchMeta({ data: { imdbId: selected!.imdbID } });
+        // Fetch metadata (cached server-side). Use the canonical IMDb id when
+        // we have one, otherwise the numeric TMDB id for fresh discoveries.
+        const meta = await fetchMeta({
+          data: {
+            id: selected!.imdbID || String(selected!.tmdbId),
+            mediaType: selected!.Type,
+          },
+        });
         const payload = {
           user_id: userId,
           title: meta.title,
           genre: meta.genres[0] ?? "Drama",
           genres: meta.genres,
-          imdb_id: meta.imdb_id,
+          imdb_id: meta.imdb_id || null,
           release_year: meta.release_year,
           runtime: meta.runtime,
           overview: meta.overview,
           director: meta.director,
           actors: meta.actors,
           poster_url: meta.poster_url,
+          backdrop_url: meta.backdrop_url,
           imdb_rating: meta.imdb_rating,
           media_type: meta.media_type,
           status,
@@ -208,7 +218,7 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
                 .map((r) => {
                   const inLib = library.has(r.imdbID);
                   return (
-                    <li key={r.imdbID}>
+                    <li key={r.imdbID || `tmdb-${r.tmdbId}`}>
                       <button
                         type="button"
                         onClick={() => pickResult(r)}
@@ -258,9 +268,7 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-lg">
-              {selected?.Title ?? movie?.title}
-            </p>
+            <p className="truncate font-display text-lg">{selected?.Title ?? movie?.title}</p>
             <p className="text-xs text-muted-foreground">
               {selected?.Year ?? movie?.release_year}
               {selected?.Type && (
@@ -281,7 +289,9 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
       <div className="space-y-2">
         <Label>Status</Label>
         <Select value={status} onValueChange={(v) => setStatus(v as "watched" | "watchlist")}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="watched">Watched</SelectItem>
             <SelectItem value="watchlist">Watchlist</SelectItem>
@@ -328,7 +338,9 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes <span className="text-muted-foreground">(optional)</span></Label>
+        <Label htmlFor="notes">
+          Notes <span className="text-muted-foreground">(optional)</span>
+        </Label>
         <Textarea
           id="notes"
           value={notes}
@@ -339,7 +351,9 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
         <Button type="submit" disabled={saving || (!editing && !selected)}>
           {saving ? "Saving…" : editing ? "Save changes" : "Save"}
         </Button>

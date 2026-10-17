@@ -1,11 +1,10 @@
 /**
  * Curated IMDb IDs used to seed the shared movie_cache: Top 250 staples plus
- * blockbusters, franchises and genre classics across eras. Any stale/wrong ID
- * simply resolves to Response: "False" on OMDb and gets skipped — the list is
- * safe by construction.
+ * blockbusters, franchises and genre classics across eras. Each ID is resolved
+ * to a TMDB title via /find when seeding; any stale/wrong ID simply returns no
+ * TMDB match and gets skipped — the list is safe by construction.
  *
- * Shared by the CLI seed script (scripts/seed-movie-cache.ts) and the
- * protected /api/seed server route, so both always use the same source list.
+ * Shared by the CLI seed script (scripts/seed-movie-cache.ts).
  */
 export const CURATED_IMDB_IDS = [
   // --- IMDb Top 250 staples -------------------------------------------------
