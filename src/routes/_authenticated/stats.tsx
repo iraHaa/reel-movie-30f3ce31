@@ -19,7 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
 import type { Movie } from "@/components/MovieCard";
 
 export const Route = createFileRoute("/_authenticated/stats")({
-  head: () => ({ meta: [{ title: "Statistics – Reel Movie" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Statistics – Reel Movie" }, { name: "description", content: "Explore your viewing activity, favorite genres and personal ratings on Reel Movie." }, { property: "og:title", content: "Statistics – Reel Movie" }, { property: "og:description", content: "Explore your viewing activity, favorite genres and personal ratings on Reel Movie." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
   component: StatsPage,
 });
 

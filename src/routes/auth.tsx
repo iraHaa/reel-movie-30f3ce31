@@ -27,6 +27,10 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Sign in – Reel Movie" },
       { name: "description", content: "Sign in or create your Reel Movie account." },
+      { property: "og:title", content: "Sign in – Reel Movie" },
+      { property: "og:description", content: "Sign in or create your Reel Movie account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
