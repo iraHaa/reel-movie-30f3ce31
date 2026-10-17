@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 
 export const Route = createFileRoute("/_authenticated/profile")({
-  head: () => ({ meta: [{ title: "Profile – Reel Movie" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Profile – Reel Movie" }, { name: "description", content: "Manage your Reel Movie profile, photo and privacy settings." }, { property: "og:title", content: "Profile – Reel Movie" }, { property: "og:description", content: "Manage your Reel Movie profile, photo and privacy settings." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
   component: ProfilePage,
 });
 

@@ -10,7 +10,7 @@ import type { Movie } from "@/components/MovieCard";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
-  head: () => ({ meta: [{ title: "Viewing calendar – Reel Movie" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Viewing calendar – Reel Movie" }, { name: "description", content: "Browse your movie and TV viewing history by date on Reel Movie." }, { property: "og:title", content: "Viewing calendar – Reel Movie" }, { property: "og:description", content: "Browse your movie and TV viewing history by date on Reel Movie." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
   component: CalendarPage,
 });
 

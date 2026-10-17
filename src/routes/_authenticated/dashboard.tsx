@@ -20,7 +20,7 @@ import { MovieForm } from "@/components/MovieForm";
 import { AppHeader } from "@/components/AppHeader";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Your movies – Reel Movie" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Your movies – Reel Movie" }, { name: "description", content: "Manage your watched movies, TV shows, favorites and watchlist on Reel Movie." }, { property: "og:title", content: "Your movies – Reel Movie" }, { property: "og:description", content: "Manage your watched movies, TV shows, favorites and watchlist on Reel Movie." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }] }),
   component: Dashboard,
 });
 

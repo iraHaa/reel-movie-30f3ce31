@@ -132,7 +132,7 @@ export const Route = createFileRoute("/movie/$id")({
     const movie = (loaderData as MovieLoaderData | null | undefined)?.movie ?? null;
     if (!movie) {
       return {
-        meta: [{ title: "Movie not found | Reel Movie" }, { name: "robots", content: "noindex" }],
+        meta: [{ title: "Movie not found | Reel Movie" }, { name: "description", content: "This movie or TV show is not available on Reel Movie." }, { property: "og:title", content: "Movie not found | Reel Movie" }, { property: "og:description", content: "This movie or TV show is not available on Reel Movie." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }],
       };
     }
 

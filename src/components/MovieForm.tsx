@@ -96,7 +96,8 @@ export function MovieForm({ defaultStatus, userId, movie, onSaved, onCancel }: P
         const r = await search({ data: { query: query.trim() } });
         setResults(r);
       } catch (e) {
-        console.error(e);
+        setResults([]);
+        toast.error(e instanceof Error ? e.message : "Movie search is temporarily unavailable. Please try again later.");
       } finally {
         setSearching(false);
       }
