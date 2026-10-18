@@ -51,6 +51,7 @@ export type Database = {
           release_year: number | null
           runtime: number | null
           title: string
+          tmdb_id: number | null
           updated_at: string
         }
         Insert: {
@@ -68,6 +69,7 @@ export type Database = {
           release_year?: number | null
           runtime?: number | null
           title: string
+          tmdb_id?: number | null
           updated_at?: string
         }
         Update: {
@@ -85,6 +87,7 @@ export type Database = {
           release_year?: number | null
           runtime?: number | null
           title?: string
+          tmdb_id?: number | null
           updated_at?: string
         }
         Relationships: []

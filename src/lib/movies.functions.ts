@@ -547,6 +547,7 @@ export const getMovieMeta = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("movie_cache").upsert({
         imdb_id: meta.imdb_id,
+        tmdb_id: tmdbId,
         title: meta.title,
         release_year: meta.release_year,
         runtime: meta.runtime,
@@ -559,8 +560,125 @@ export const getMovieMeta = createServerFn({ method: "POST" })
         imdb_rating: meta.imdb_rating,
         media_type: meta.media_type,
         raw: details,
+        updated_at: new Date().toISOString(),
       });
     }
 
     return meta;
+  });
+
+export type CacheRefreshReport = {
+  scanned: number;
+  refreshed: number;
+  unmatched: number;
+  failed: number;
+  remaining: number;
+};
+
+/**
+ * Migrates stale OMDb-era cache rows to TMDB data. Selects the oldest rows
+ * that have no TMDB id (or a non-TMDB poster), resolves each through its
+ * preserved IMDb id via TMDB `/find`, fetches full details (movie vs tv
+ * endpoint by media_type) and upserts on the unchanged `imdb_id` key — so
+ * personal library rows that reference IMDb ids keep working and reruns never
+ * duplicate records. Best-effort per row: unmatched titles and API failures
+ * are skipped and reported, never thrown. Idempotent: once a row carries a
+ * TMDB id and TMDB image URLs it is never picked again.
+ */
+export const refreshMovieCache = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ batchSize: z.number().int().min(1).max(50).default(25) }))
+  .handler(async ({ data }): Promise<CacheRefreshReport> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const staleFilter =
+      "tmdb_id.is.null,poster_url.not.ilike.*image.tmdb.org*,poster_url.is.null";
+    const { data: stale, error } = await supabaseAdmin
+      .from("movie_cache")
+      .select("imdb_id, media_type")
+      .or(staleFilter)
+      .order("updated_at", { ascending: true })
+      .limit(data.batchSize);
+    if (error) throw new Error("Could not read the movie cache.");
+
+    const report: CacheRefreshReport = {
+      scanned: stale?.length ?? 0,
+      refreshed: 0,
+      unmatched: 0,
+      failed: 0,
+      remaining: 0,
+    };
+
+    for (const row of stale ?? []) {
+      try {
+        const mediaType = normalizeType(row.media_type);
+        const found = await findTmdbByImdb(row.imdb_id, true);
+        if (!found) {
+          report.unmatched++;
+          continue;
+        }
+        const details = await fetchTmdbDetails(found.tmdbId, found.mediaType, true);
+        if (!details || !tmdbDisplayTitle(details)) {
+          report.unmatched++;
+          continue;
+        }
+        const meta = mapTmdbDetailsToMeta(details, row.imdb_id, found.mediaType);
+        if (!meta.imdb_id) meta.imdb_id = row.imdb_id;
+        const { error: upError } = await supabaseAdmin.from("movie_cache").upsert(
+          {
+            imdb_id: meta.imdb_id,
+            tmdb_id: found.tmdbId,
+            title: meta.title,
+            release_year: meta.release_year,
+            runtime: meta.runtime,
+            genres: meta.genres,
+            overview: meta.overview,
+            director: meta.director,
+            actors: meta.actors,
+            poster_url: meta.poster_url,
+            backdrop_url: meta.backdrop_url,
+            imdb_rating: meta.imdb_rating,
+            media_type: mediaType,
+            raw: details,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "imdb_id" },
+        );
+        if (upError) {
+          report.failed++;
+        } else {
+          report.refreshed++;
+          // Propagate refreshed metadata to every personal library /
+          // watchlist row referencing this IMDb id. Only shared metadata is
+          // updated — personal data (rating_score, notes, is_favorite,
+          // status, watched_at) is never touched.
+          await supabaseAdmin
+            .from("movies")
+            .update({
+              title: meta.title,
+              release_year: meta.release_year,
+              runtime: meta.runtime,
+              genres: meta.genres,
+              overview: meta.overview,
+              director: meta.director,
+              actors: meta.actors,
+              poster_url: meta.poster_url,
+              backdrop_url: meta.backdrop_url,
+              imdb_rating: meta.imdb_rating,
+              media_type: mediaType,
+            })
+            .eq("imdb_id", meta.imdb_id);
+        }
+      } catch {
+        report.failed++;
+      }
+    }
+
+    const { count } = await supabaseAdmin
+      .from("movie_cache")
+      .select("imdb_id", { count: "exact", head: true })
+      .or(staleFilter);
+    report.remaining = count ?? 0;
+
+    return report;
   });

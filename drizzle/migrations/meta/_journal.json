@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792311346661,
+      "tag": "0000_add_tmdb_id_to_movie_cache",
+      "breakpoints": true
+    }
+  ]
+}
