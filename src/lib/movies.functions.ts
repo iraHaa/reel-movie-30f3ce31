@@ -644,8 +644,31 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
           },
           { onConflict: "imdb_id" },
         );
-        if (upError) report.failed++;
-        else report.refreshed++;
+        if (upError) {
+          report.failed++;
+        } else {
+          report.refreshed++;
+          // Propagate refreshed metadata to every personal library /
+          // watchlist row referencing this IMDb id. Only shared metadata is
+          // updated — personal data (rating_score, notes, is_favorite,
+          // status, watched_at) is never touched.
+          await supabaseAdmin
+            .from("movies")
+            .update({
+              title: meta.title,
+              release_year: meta.release_year,
+              runtime: meta.runtime,
+              genres: meta.genres,
+              overview: meta.overview,
+              director: meta.director,
+              actors: meta.actors,
+              poster_url: meta.poster_url,
+              backdrop_url: meta.backdrop_url,
+              imdb_rating: meta.imdb_rating,
+              media_type: mediaType,
+            })
+            .eq("imdb_id", meta.imdb_id);
+        }
       } catch {
         report.failed++;
       }
