@@ -547,6 +547,7 @@ export const getMovieMeta = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("movie_cache").upsert({
         imdb_id: meta.imdb_id,
+        tmdb_id: tmdbId,
         title: meta.title,
         release_year: meta.release_year,
         runtime: meta.runtime,
@@ -559,6 +560,7 @@ export const getMovieMeta = createServerFn({ method: "POST" })
         imdb_rating: meta.imdb_rating,
         media_type: meta.media_type,
         raw: details,
+        updated_at: new Date().toISOString(),
       });
     }
 

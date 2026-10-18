@@ -180,6 +180,7 @@ function toCacheRow(d: TmdbTitleDetails, fallbackImdbId: string | undefined, med
 
   return {
     imdb_id: d.imdb_id || fallbackImdbId || "",
+    tmdb_id: d.id,
     title: tmdbDisplayTitle(d),
     release_year: tmdbYear(d),
     runtime,
