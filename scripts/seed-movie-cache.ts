@@ -196,9 +196,14 @@ function toCacheRow(d: TmdbTitleDetails, fallbackImdbId: string | undefined, med
   };
 }
 
-/** Same completeness rule as getMovieMeta(): genres + at least one detail field. */
+/**
+ * Same completeness rule as getMovieMeta() — genres + at least one detail
+ * field — plus a TMDB id so stale OMDb-era rows are re-fetched and refreshed
+ * instead of skipped.
+ */
 function isCompleteRow(
   row: {
+    tmdb_id: number | null;
     genres: string[] | null;
     overview: string | null;
     director: string | null;
@@ -208,6 +213,7 @@ function isCompleteRow(
 ): boolean {
   return (
     !!row &&
+    row.tmdb_id != null &&
     Array.isArray(row.genres) &&
     row.genres.length > 0 &&
     (row.overview != null || row.director != null || row.actors != null || row.runtime != null)
@@ -316,7 +322,7 @@ async function main() {
     if (imdbId) {
       const { data: existing, error: probeError } = await supabase
         .from("movie_cache")
-        .select("imdb_id, genres, overview, director, actors, runtime")
+        .select("imdb_id, tmdb_id, genres, overview, director, actors, runtime")
         .eq("imdb_id", imdbId)
         .maybeSingle();
       if (probeError) {
