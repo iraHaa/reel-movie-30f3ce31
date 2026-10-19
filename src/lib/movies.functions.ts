@@ -624,13 +624,13 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
         const found = await findTmdbByImdb(row.imdb_id, true);
         if (!found) {
           report.unmatched++;
-          await deferRow();
+          await deferRow(row.imdb_id);
           continue;
         }
         const details = await fetchTmdbDetails(found.tmdbId, found.mediaType, true);
         if (!details || !tmdbDisplayTitle(details)) {
           report.unmatched++;
-          await deferRow();
+          await deferRow(row.imdb_id);
           continue;
         }
         const meta = mapTmdbDetailsToMeta(details, row.imdb_id, found.mediaType);
@@ -657,7 +657,7 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
         );
         if (upError) {
           report.failed++;
-          await deferRow();
+          await deferRow(row.imdb_id);
         } else {
           report.refreshed++;
           // Propagate refreshed metadata to every personal library /
@@ -683,7 +683,7 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
         }
       } catch {
         report.failed++;
-        await deferRow();
+        await deferRow(row.imdb_id);
       }
     }
 
