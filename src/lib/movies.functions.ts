@@ -612,11 +612,11 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
     // Titles TMDB genuinely doesn't have (obscure shorts, making-ofs) stay
     // stale; bumping updated_at rotates them to the back of the queue so one
     // bad block can't starve the rest, and future runs retry them last.
-    const deferRow = () =>
+    const deferRow = (imdbId: string) =>
       supabaseAdmin
         .from("movie_cache")
         .update({ updated_at: new Date().toISOString() })
-        .eq("imdb_id", row.imdb_id);
+        .eq("imdb_id", imdbId);
 
     for (const row of stale ?? []) {
       try {
