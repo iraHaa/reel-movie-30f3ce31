@@ -657,6 +657,7 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
         );
         if (upError) {
           report.failed++;
+          await deferRow();
         } else {
           report.refreshed++;
           // Propagate refreshed metadata to every personal library /
@@ -682,6 +683,7 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
         }
       } catch {
         report.failed++;
+        await deferRow();
       }
     }
 
