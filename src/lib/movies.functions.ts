@@ -609,17 +609,28 @@ export const refreshMovieCache = createServerFn({ method: "POST" })
       remaining: 0,
     };
 
+    // Titles TMDB genuinely doesn't have (obscure shorts, making-ofs) stay
+    // stale; bumping updated_at rotates them to the back of the queue so one
+    // bad block can't starve the rest, and future runs retry them last.
+    const deferRow = () =>
+      supabaseAdmin
+        .from("movie_cache")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("imdb_id", row.imdb_id);
+
     for (const row of stale ?? []) {
       try {
         const mediaType = normalizeType(row.media_type);
         const found = await findTmdbByImdb(row.imdb_id, true);
         if (!found) {
           report.unmatched++;
+          await deferRow();
           continue;
         }
         const details = await fetchTmdbDetails(found.tmdbId, found.mediaType, true);
         if (!details || !tmdbDisplayTitle(details)) {
           report.unmatched++;
+          await deferRow();
           continue;
         }
         const meta = mapTmdbDetailsToMeta(details, row.imdb_id, found.mediaType);
