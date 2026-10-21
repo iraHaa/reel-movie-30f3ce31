@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, type ErrorComponentProps } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, UserPlus, UserMinus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,11 +27,13 @@ export const Route = createFileRoute("/u/$username")({
     };
   },
   component: PublicProfile,
-  errorComponent: ({ error }) => (
+  errorComponent: ({ error }: ErrorComponentProps) => (
     <div className="min-h-screen grid place-items-center p-6 text-center">
       <div>
         <h1 className="font-display text-3xl mb-2">Profile unavailable</h1>
-        <p className="text-muted-foreground text-sm mb-6">{error?.message ?? "Something went wrong."}</p>
+        <p className="text-muted-foreground text-sm mb-6">
+          {error instanceof Error ? error.message : "Something went wrong."}
+        </p>
         <Button asChild variant="outline"><Link to="/discover">Back to Discover</Link></Button>
       </div>
     </div>
