@@ -8,6 +8,8 @@ const SITE_URL = "https://reel-movie.lovable.app";
 const PAGE_TITLE = "Reel Movie – Free Movie & TV Show Tracker";
 const PAGE_DESCRIPTION =
   "Track movies you've watched, create your watchlist, discover new movies and TV shows, rate your favorites, and organize your collection with Reel Movie.";
+const TMDB_LOGO_URL =
+  "https://www.themoviedb.org/assets/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg";
 const OG_IMAGE =
   "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/357267f1-21d6-49e8-bbb2-07c67db05fa8/id-preview-292d5071--bb508a7d-37d8-4c55-b97d-9a557bcb4cd5.lovable.app-1780415684573.png";
 
@@ -262,11 +264,27 @@ function Landing() {
       </main>
 
       <footer className="border-t border-border/60">
-        <div className="mx-auto max-w-6xl px-6 py-8 text-center text-xs text-muted-foreground">
+        <div className="relative mx-auto max-w-6xl px-6 py-8 text-center text-xs text-muted-foreground">
           <p>
             &copy; {new Date().getFullYear()} Reel Movie. Made in Ukraine. This product uses the
             TMDB API but is not endorsed or certified by TMDB.
           </p>
+          <a
+            href="https://www.themoviedb.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Movie and TV data provided by The Movie Database (TMDB)"
+            className="mt-4 flex justify-end md:absolute md:right-6 md:bottom-4 md:mt-0"
+          >
+            <img
+              src={TMDB_LOGO_URL}
+              alt="The Movie Database (TMDB)"
+              width={190}
+              height={81}
+              loading="lazy"
+              className="h-7 w-auto opacity-90 transition-opacity hover:opacity-100"
+            />
+          </a>
         </div>
       </footer>
     </div>
