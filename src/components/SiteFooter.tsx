@@ -4,7 +4,7 @@ const TMDB_LOGO_URL =
 export function SiteFooter() {
   return (
     <footer className="border-t border-border/60">
-      <div className="relative mx-auto max-w-6xl px-6 pt-5 pb-12 text-center text-xs text-muted-foreground md:pb-5">
+      <div className="relative mx-auto max-w-6xl px-6 pt-5 pb-11 text-center text-xs text-muted-foreground md:pb-5">
         <p>
           &copy; {new Date().getFullYear()} Reel Movie. Made in Ukraine. This product uses the
           TMDB API but is not endorsed or certified by TMDB.
