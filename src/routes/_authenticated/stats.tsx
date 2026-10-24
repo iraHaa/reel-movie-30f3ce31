@@ -24,14 +24,13 @@ export const Route = createFileRoute("/_authenticated/stats")({
 });
 
 const CHART_COLORS = [
-  "hsl(var(--primary))",
-  "#7dd3a0",
-  "#5eb887",
-  "#3fa06e",
-  "#2d8a5a",
-  "#a3e0be",
-  "#c4ecd4",
-  "#8fbf9f",
+  "#166534",
+  "#059669",
+  "#16A34A",
+  "#3F9B69",
+  "#4ADE80",
+  "#A6E889",
+  "#A7F3D0",
 ];
 
 function StatsPage() {
@@ -143,7 +142,7 @@ function StatsPage() {
                             fontSize: 12,
                           }}
                         />
-                        <Bar dataKey="count" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="count" fill="#439349" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
