@@ -29,7 +29,7 @@ const CHART_COLORS = [
   "#16A34A",
   "#3F9B69",
   "#4ADE80",
-  "#A6E889",
+  "#7ecf88",
   "#A7F3D0",
 ];
 
@@ -131,8 +131,8 @@ function StatsPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={stats.monthly}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} allowDecimals={false} />
+                        <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" tick={{ fill: '#7dfa8c' }} fontSize={12} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fill: '#7dfa8c' }} fontSize={12} allowDecimals={false} />
                         <Tooltip
                           cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
                           contentStyle={{
