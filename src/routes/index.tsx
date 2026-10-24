@@ -261,14 +261,6 @@ function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-border/60">
-        <div className="mx-auto max-w-6xl px-6 py-8 text-center text-xs text-muted-foreground">
-          <p>
-            &copy; {new Date().getFullYear()} Reel Movie. Made in Ukraine. This product uses the
-            TMDB API but is not endorsed or certified by TMDB.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
